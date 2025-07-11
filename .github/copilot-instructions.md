@@ -513,3 +513,195 @@ O campo `definition` é um JSON flexível que pode conter:
 - [ ] Implementar versionamento de templates
 - [ ] Adicionar validação avançada de schemas de definition
 - [ ] Implementar importação/exportação de templates
+
+## Fase 7: Sistema de Mesas de Jogo e Convites
+
+### Funcionalidades Implementadas
+- ✅ **Modelos de GameTable e Invite**:
+  - GameTable com ID (UUID), Name, System, OwnerID, timestamps
+  - Invite com ID (UUID), TableID, InviterID, InviteeID, Status, timestamps
+  - Relacionamentos FK com usuários e constrains de integridade
+  
+- ✅ **Repositórios de Dados**:
+  - GameTableRepository para operações CRUD de mesas
+  - InviteRepository para gerenciamento de convites
+  - Queries otimizadas com JOINs para dados relacionados
+  - Verificações de permissão e validações de negócio
+  
+- ✅ **Serviços de Negócio**:
+  - GameTableService com lógica de autorização
+  - Validação de permissões (owner vs convidado)
+  - Prevenção de auto-convites e convites duplicados
+  - Controle de status de convites (pending/accepted/declined)
+  
+- ✅ **Endpoints REST Completos**:
+  - CRUD completo para mesas com autorização
+  - Sistema de convites com controle de acesso
+  - Validação de permissões em todos os endpoints
+  - Tratamento de erros específicos (403, 404, 409)
+  
+- ✅ **Migrações de Banco**:
+  - `20250711120000_create_game_tables.sql` - Tabela de mesas
+  - `20250711120100_create_invites.sql` - Tabela de convites
+  - Índices para performance e constraints de integridade
+
+### Endpoints de Mesas de Jogo
+
+#### Gestão de Mesas
+- `POST /api/v1/tables` - Criar mesa (autenticado, owner = JWT.UserID) 🔒
+- `GET /api/v1/tables` - Lista mesas do usuário (owner ou convidado aceito) 🔒
+- `GET /api/v1/tables/{id}` - Detalhes da mesa (inclui lista de invites) 🔒
+- `PUT /api/v1/tables/{id}` - Atualiza nome/sistema (só owner) 🔒
+- `DELETE /api/v1/tables/{id}` - Remove mesa (só owner) 🔒
+
+#### Gestão de Convites
+- `POST /api/v1/tables/{id}/invites` - Criar convite (body: invitee_email) 🔒
+- `GET /api/v1/tables/{id}/invites` - Lista convites (owner e convidados) 🔒
+- `POST /api/v1/tables/{id}/invites/{inviteId}/accept` - Aceitar convite (só invitee) 🔒
+- `POST /api/v1/tables/{id}/invites/{inviteId}/decline` - Recusar convite (só invitee) 🔒
+
+### Exemplos de Uso
+
+#### Criar Mesa
+```bash
+# Autenticar primeiro
+$token = "seu_jwt_token_aqui"
+$headers = @{Authorization="Bearer $token"; "Content-Type"="application/json"}
+
+# Criar nova mesa
+$mesa = @{
+    name = "Mesa D&D: A Busca pelo Artefato Perdido"
+    system = "D&D 5e"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/tables' -Method POST -Body $mesa -Headers $headers
+```
+
+#### Listar Mesas do Usuário
+```bash
+# Lista todas as mesas onde é owner ou convidado aceito
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/tables' -Headers $headers
+```
+
+#### Convidar Jogador
+```bash
+# Convidar usuário por email
+$convite = @{
+    invitee_email = "jogador@exemplo.com"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/tables/{mesa_id}/invites' -Method POST -Body $convite -Headers $headers
+```
+
+#### Aceitar Convite
+```bash
+# Usuário convidado aceita o convite
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/tables/{mesa_id}/invites/{invite_id}/accept' -Method POST -Headers $headers
+```
+
+### Estrutura de Dados
+
+#### GameTable
+```json
+{
+  "id": "uuid-da-mesa",
+  "name": "Mesa D&D: Aventura Épica",
+  "system": "D&D 5e",
+  "owner_id": 1,
+  "owner": {
+    "id": 1,
+    "email": "mestre@exemplo.com"
+  },
+  "invites": [
+    {
+      "id": "uuid-do-convite",
+      "invitee": {
+        "id": 2,
+        "email": "jogador@exemplo.com"
+      },
+      "status": "accepted",
+      "created_at": "2025-07-11T12:00:00Z"
+    }
+  ],
+  "created_at": "2025-07-11T10:00:00Z",
+  "updated_at": "2025-07-11T10:00:00Z"
+}
+```
+
+#### Invite
+```json
+{
+  "id": "uuid-do-convite",
+  "table_id": "uuid-da-mesa",
+  "inviter_id": 1,
+  "invitee_id": 2,
+  "status": "pending", // pending, accepted, declined
+  "inviter": {
+    "id": 1,
+    "email": "mestre@exemplo.com"
+  },
+  "invitee": {
+    "id": 2,
+    "email": "jogador@exemplo.com"
+  },
+  "created_at": "2025-07-11T11:00:00Z",
+  "updated_at": "2025-07-11T11:00:00Z"
+}
+```
+
+### Validações e Autorização
+
+#### Permissões de Mesa
+- **Owner**: Pode criar/editar/deletar mesa, criar convites, ver todos os convites
+- **Convidado Aceito**: Pode ver detalhes da mesa, ver convites
+- **Convidado Pendente**: Pode aceitar/recusar próprio convite
+- **Outros**: Sem acesso (403 Forbidden)
+
+#### Validações de Negócio
+- **Nome da Mesa**: 3-100 caracteres, obrigatório
+- **Sistema**: 2-50 caracteres, obrigatório
+- **Email do Convidado**: Deve ser usuário existente
+- **Auto-convite**: Não permitido
+- **Convite Duplicado**: Não permitido
+- **Status de Convite**: Só pode mudar de "pending"
+
+#### Códigos de Erro
+- **400**: Dados inválidos no request
+- **401**: Token JWT inválido ou ausente
+- **403**: Sem permissão para a operação
+- **404**: Mesa, convite ou usuário não encontrado
+- **409**: Conflito (convite duplicado, já respondido)
+- **500**: Erro interno do servidor
+
+### Arquivos Criados/Modificados
+- `migrations/20250711120000_create_game_tables.sql` - Tabela mesas
+- `migrations/20250711120100_create_invites.sql` - Tabela convites
+- `internal/app/models/game_table.go` - Modelos e estruturas
+- `internal/app/repositories/game_table.go` - Repositórios
+- `internal/app/services/game_table.go` - Lógica de negócio
+- `internal/bff/game_table.go` - Handlers HTTP
+- `internal/bff/handler.go` - Integração das rotas
+
+### Observações Importantes
+
+#### UUID vs Integer ID
+- **Mesas e Convites**: Usam UUID para evitar enumeration attacks
+- **Usuários**: Mantêm ID integer por compatibilidade
+
+#### Segurança
+- **Todas as rotas protegidas**: Requerem JWT válido
+- **Autorização granular**: Validação por operação
+- **Prevenção de leaks**: Não expõe dados sensíveis
+
+#### Performance
+- **Índices otimizados**: Para queries frequentes
+- **JOINs eficientes**: Para evitar N+1 queries
+- **Paginação**: Implementada onde necessário
+
+### Próximos Passos
+- [ ] Adicionar notificações de convites por email
+- [ ] Implementar websockets para updates em tempo real
+- [ ] Adicionar roles dentro das mesas (player, co-master)
+- [ ] Implementar sistema de sessões de jogo
+- [ ] Adicionar logs de auditoria para ações importantes
+- [ ] Implementar soft delete para mesas arquivadas
