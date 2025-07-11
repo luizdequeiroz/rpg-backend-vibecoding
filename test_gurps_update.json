@@ -1,0 +1,30 @@
+{
+    "name": "Ficha GURPS 4ª Edição",
+    "system": "GURPS 4e",
+    "description": "Template completo para personagens de GURPS 4ª edição",
+    "definition": {
+        "sections": [
+            {
+                "name": "Atributos Primários",
+                "fields": [
+                    {
+                        "name": "ST (Força)",
+                        "type": "number",
+                        "min": 1,
+                        "max": 30,
+                        "default": 10,
+                        "cost_per_level": 10
+                    },
+                    {
+                        "name": "DX (Destreza)", 
+                        "type": "number",
+                        "min": 1,
+                        "max": 30,
+                        "default": 10,
+                        "cost_per_level": 20
+                    }
+                ]
+            }
+        ]
+    }
+}

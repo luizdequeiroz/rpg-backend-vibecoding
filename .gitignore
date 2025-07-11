@@ -1,0 +1,82 @@
+# Binários compilados
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Arquivos de teste
+*.test
+
+# Arquivos de coverage
+*.out
+*.cover
+coverage.html
+
+# Arquivos de dependência
+go.work
+
+# Diretórios específicos do projeto
+/tmp/
+/vendor/
+
+# Banco de dados local
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Configurações locais
+.env
+.env.local
+.env.*.local
+
+# IDEs e editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backups
+backups/
+*.backup
+
+# Cache do Go
+go.sum
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Docker
+.dockerignore
+
+# Certificados e chaves
+*.pem
+*.key
+*.crt
+*.p12
+
+# Runtime
+pid
+*.pid
+*.seed
+
+# Documentação gerada automaticamente (manter versionado)
+# docs/docs.go
+# docs/swagger.json
+# docs/swagger.yaml

@@ -1,0 +1,551 @@
+basePath: /
+definitions:
+  bff.HealthResponse:
+    properties:
+      services:
+        additionalProperties:
+          type: string
+        example:
+          database: ok
+        type: object
+      status:
+        example: ok
+        type: string
+      timestamp:
+        example: "2025-07-10T15:47:08Z"
+        type: string
+      version:
+        example: 1.0.0
+        type: string
+    type: object
+  models.AuthResponse:
+    properties:
+      token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  models.CreateSheetTemplateRequest:
+    properties:
+      definition:
+        type: object
+      description:
+        example: Template completo para personagens de D&D 5ª edição
+        maxLength: 500
+        type: string
+      name:
+        example: Ficha D&D 5e
+        maxLength: 100
+        minLength: 3
+        type: string
+      system:
+        example: D&D 5e
+        maxLength: 50
+        minLength: 2
+        type: string
+    required:
+    - definition
+    - name
+    - system
+    type: object
+  models.ErrorResponse:
+    properties:
+      error:
+        example: Email já está em uso
+        type: string
+      message:
+        example: Detalhes adicionais do erro
+        type: string
+    type: object
+  models.SheetTemplateErrorResponse:
+    properties:
+      error:
+        example: Erro no processamento
+        type: string
+      fields:
+        items:
+          $ref: '#/definitions/models.SheetTemplateValidationError'
+        type: array
+      message:
+        example: Detalhes adicionais do erro
+        type: string
+      timestamp:
+        example: "2025-07-11T09:26:29Z"
+        type: string
+    type: object
+  models.SheetTemplateListResponse:
+    properties:
+      has_next:
+        example: true
+        type: boolean
+      limit:
+        example: 20
+        type: integer
+      page:
+        example: 1
+        type: integer
+      templates:
+        items:
+          $ref: '#/definitions/models.SheetTemplateResponse'
+        type: array
+      total:
+        example: 25
+        type: integer
+    type: object
+  models.SheetTemplateResponse:
+    properties:
+      created_at:
+        example: "2025-07-11T09:26:29Z"
+        type: string
+      definition:
+        type: object
+      description:
+        example: Template completo para personagens de D&D 5ª edição
+        maxLength: 500
+        type: string
+      id:
+        example: 1
+        type: integer
+      is_active:
+        example: true
+        type: boolean
+      name:
+        example: Ficha D&D 5e
+        maxLength: 100
+        minLength: 3
+        type: string
+      system:
+        example: D&D 5e
+        maxLength: 50
+        minLength: 2
+        type: string
+      updated_at:
+        example: "2025-07-11T09:26:29Z"
+        type: string
+    required:
+    - definition
+    - name
+    - system
+    type: object
+  models.SheetTemplateValidationError:
+    properties:
+      field:
+        example: name
+        type: string
+      message:
+        example: Nome deve ter pelo menos 3 caracteres
+        type: string
+      value:
+        example: ab
+        type: string
+    type: object
+  models.UpdateSheetTemplateRequest:
+    properties:
+      definition:
+        type: object
+      description:
+        example: Template atualizado para D&D 5ª edição
+        maxLength: 500
+        type: string
+      name:
+        example: Ficha D&D 5e Atualizada
+        maxLength: 100
+        minLength: 3
+        type: string
+      system:
+        example: D&D 5e
+        maxLength: 50
+        minLength: 2
+        type: string
+    type: object
+  models.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      updated_at:
+        type: string
+    required:
+    - email
+    type: object
+  models.UserLoginRequest:
+    properties:
+      email:
+        example: usuario@exemplo.com
+        type: string
+      password:
+        example: senha123
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  models.UserSignupRequest:
+    properties:
+      email:
+        example: usuario@exemplo.com
+        type: string
+      password:
+        example: senha123
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: luiz@example.com
+    name: Luiz de Queiroz
+  description: API para gerenciamento de sessões de RPG, incluindo usuários, campanhas,
+    personagens e sessões de jogo.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: RPG Session Backend API
+  version: 1.0.0
+paths:
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Autentica um usuário e retorna token JWT
+      parameters:
+      - description: Credenciais de login
+        in: body
+        name: login
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login realizado com sucesso
+          schema:
+            $ref: '#/definitions/models.AuthResponse'
+        "400":
+          description: Dados inválidos
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Credenciais inválidas
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Login de usuário
+      tags:
+      - auth
+  /api/v1/auth/me:
+    get:
+      consumes:
+      - application/json
+      description: Retorna as informações do usuário autenticado
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Informações do usuário
+          schema:
+            $ref: '#/definitions/models.User'
+        "401":
+          description: Token inválido ou ausente
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Usuário não encontrado
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Informações do usuário atual
+      tags:
+      - auth
+  /api/v1/auth/signup:
+    post:
+      consumes:
+      - application/json
+      description: Registra um novo usuário no sistema com email e senha
+      parameters:
+      - description: Dados de registro
+        in: body
+        name: signup
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserSignupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Usuário criado com sucesso
+          schema:
+            $ref: '#/definitions/models.AuthResponse'
+        "400":
+          description: Dados inválidos
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: Email já está em uso
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Registro de novo usuário
+      tags:
+      - auth
+  /api/v1/templates:
+    get:
+      consumes:
+      - application/json
+      description: Retorna uma lista paginada de todos os templates de ficha ativos
+      parameters:
+      - default: 1
+        description: Número da página
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de templates
+          schema:
+            $ref: '#/definitions/models.SheetTemplateListResponse'
+        "400":
+          description: Parâmetros inválidos
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Lista templates de ficha
+      tags:
+      - templates
+    post:
+      consumes:
+      - application/json
+      description: Cria um novo template de ficha de personagem
+      parameters:
+      - description: Dados do template
+        in: body
+        name: template
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateSheetTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Template criado com sucesso
+          schema:
+            $ref: '#/definitions/models.SheetTemplateResponse'
+        "400":
+          description: Dados inválidos
+          schema:
+            $ref: '#/definitions/models.SheetTemplateErrorResponse'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Cria um novo template
+      tags:
+      - templates
+  /api/v1/templates/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove um template de ficha (soft delete)
+      parameters:
+      - description: ID do template
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Template removido com sucesso
+        "400":
+          description: ID inválido
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Template não encontrado
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Remove um template
+      tags:
+      - templates
+    get:
+      consumes:
+      - application/json
+      description: Retorna os detalhes de um template específico
+      parameters:
+      - description: ID do template
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Detalhes do template
+          schema:
+            $ref: '#/definitions/models.SheetTemplateResponse'
+        "400":
+          description: ID inválido
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Template não encontrado
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Busca template por ID
+      tags:
+      - templates
+    put:
+      consumes:
+      - application/json
+      description: Atualiza os dados de um template existente
+      parameters:
+      - description: ID do template
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Dados atualizados do template
+        in: body
+        name: template
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateSheetTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Template atualizado com sucesso
+          schema:
+            $ref: '#/definitions/models.SheetTemplateResponse'
+        "400":
+          description: Dados inválidos
+          schema:
+            $ref: '#/definitions/models.SheetTemplateErrorResponse'
+        "404":
+          description: Template não encontrado
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Atualiza um template
+      tags:
+      - templates
+  /api/v1/users:
+    get:
+      consumes:
+      - application/json
+      description: Retorna uma lista de todos os usuários do sistema - versão pública
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de usuários
+          schema:
+            items:
+              $ref: '#/definitions/models.User'
+            type: array
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Lista usuários (não protegido)
+      tags:
+      - users
+  /api/v1/users/protected:
+    get:
+      consumes:
+      - application/json
+      description: Retorna uma lista de todos os usuários do sistema - versão com
+        mais detalhes para usuários autenticados
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de usuários
+          schema:
+            items:
+              $ref: '#/definitions/models.User'
+            type: array
+        "401":
+          description: Não autorizado
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: Lista usuários (protegido)
+      tags:
+      - users
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Verifica o status de saúde da API e seus serviços dependentes
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: API funcionando normalmente
+          schema:
+            $ref: '#/definitions/bff.HealthResponse'
+        "503":
+          description: API com problemas em algum serviço
+          schema:
+            $ref: '#/definitions/bff.HealthResponse'
+      summary: Verificação de saúde da API
+      tags:
+      - health
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    description: 'Digite ''Bearer'' seguido do token JWT (ex: Bearer eyJhbGciOiJIUzI1...)'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

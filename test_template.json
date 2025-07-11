@@ -1,0 +1,16 @@
+{
+  "name": "D&D 5e Character Sheet",
+  "system": "D&D 5e",
+  "definition": {
+    "attributes": [
+      {"name": "Força", "type": "number", "min": 1, "max": 20},
+      {"name": "Destreza", "type": "number", "min": 1, "max": 20},
+      {"name": "Constituição", "type": "number", "min": 1, "max": 20}
+    ],
+    "skills": [
+      {"name": "Atletismo", "attribute": "Força"},
+      {"name": "Acrobacia", "attribute": "Destreza"}
+    ]
+  },
+  "description": "Template padrão para personagens de D&D 5ª edição"
+}

@@ -1,0 +1,73 @@
+{
+    "name": "Ficha GURPS",
+    "system": "GURPS",
+    "description": "Template para personagens de GURPS",
+    "definition": {
+        "sections": [
+            {
+                "name": "Atributos Primários",
+                "fields": [
+                    {
+                        "name": "ST (Força)",
+                        "type": "number",
+                        "min": 1,
+                        "max": 30,
+                        "default": 10
+                    },
+                    {
+                        "name": "DX (Destreza)",
+                        "type": "number",
+                        "min": 1,
+                        "max": 30,
+                        "default": 10
+                    },
+                    {
+                        "name": "IQ (Inteligência)",
+                        "type": "number",
+                        "min": 1,
+                        "max": 30,
+                        "default": 10
+                    },
+                    {
+                        "name": "HT (Vitalidade)",
+                        "type": "number",
+                        "min": 1,
+                        "max": 30,
+                        "default": 10
+                    }
+                ]
+            },
+            {
+                "name": "Atributos Secundários",
+                "fields": [
+                    {
+                        "name": "HP (Pontos de Vida)",
+                        "type": "number",
+                        "calculated": true,
+                        "formula": "ST"
+                    },
+                    {
+                        "name": "Will (Vontade)",
+                        "type": "number",
+                        "calculated": true,
+                        "formula": "IQ"
+                    },
+                    {
+                        "name": "Per (Percepção)",
+                        "type": "number",
+                        "calculated": true,
+                        "formula": "IQ"
+                    }
+                ]
+            }
+        ],
+        "rules": {
+            "pointCost": {
+                "ST": 10,
+                "DX": 20,
+                "IQ": 20,
+                "HT": 10
+            }
+        }
+    }
+}
