@@ -3,6 +3,7 @@ package bff
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/luizdequeiroz/rpg-backend/internal/app/handlers"
+	"github.com/luizdequeiroz/rpg-backend/internal/app/interfaces"
 	"github.com/luizdequeiroz/rpg-backend/internal/app/middleware"
 	"github.com/luizdequeiroz/rpg-backend/internal/app/services"
 )
@@ -13,9 +14,9 @@ type DiceHandler struct {
 }
 
 // NewDiceHandler cria novo handler para dados
-func NewDiceHandler(diceService *services.DiceService, playerSheetService *services.PlayerSheetService) *DiceHandler {
+func NewDiceHandler(diceService *services.DiceService, playerSheetService *services.PlayerSheetService, notificationService interfaces.NotificationService) *DiceHandler {
 	return &DiceHandler{
-		diceHandler: handlers.NewDiceHandler(diceService, playerSheetService),
+		diceHandler: handlers.NewDiceHandler(diceService, playerSheetService, notificationService),
 	}
 }
 

@@ -1002,4 +1002,221 @@ Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/rolls/table/uuid-da-mesa' -
 - [ ] Adicionar modificadores temporários nas fichas
 - [ ] Implementar iniciativa e ordem de turnos
 - [ ] Criar sistema de notas e anotações nas fichas
+
+## Fase 9: Sistema WebSocket para Notificações em Tempo Real ✅
+
+### Overview
+Sistema completo de notificações em tempo real usando WebSocket para eventos de mesa como criação de convites, fichas e rolagens de dados.
+
+### Componentes Implementados
+
+#### WebSocket Hub (`internal/app/websocket/hub.go`)
+```go
+// EventType representa tipos de eventos WebSocket
+type EventType string
+
+const (
+    EventInviteCreated   EventType = "invite_created"
+    EventInviteAccepted  EventType = "invite_accepted"
+    EventInviteDeclined  EventType = "invite_declined"
+    EventSheetCreated    EventType = "sheet_created"
+    EventSheetUpdated    EventType = "sheet_updated"
+    EventSheetDeleted    EventType = "sheet_deleted"
+    EventRollPerformed   EventType = "roll_performed"
+    EventTableUpdated    EventType = "table_updated"
+)
+```
+
+**Funcionalidades:**
+- **Gerenciamento de Clientes**: Agrupamento por mesa
+- **Broadcast Seletivo**: Eventos específicos por mesa
+- **Cleanup Automático**: Remoção de conexões inativas
+- **Thread Safety**: Operações concorrentes seguras
+
+#### WebSocket Handler (`internal/app/websocket/handler.go`)
+```bash
+# Conectar WebSocket
+GET /api/v1/ws?table_id=UUID
+Authorization: Bearer JWT_TOKEN
+
+# Estatísticas de conexões
+GET /api/v1/ws/stats
+Authorization: Bearer JWT_TOKEN
+
+# Evento de teste (desenvolvimento)
+POST /api/v1/ws/test
+Authorization: Bearer JWT_TOKEN
+```
+
+**Autenticação:**
+- **JWT Required**: Todas as conexões verificam token
+- **Table Association**: Cliente associado a mesa específica
+- **User Context**: UserID e email disponível em eventos
+
+#### WebSocket Service (`internal/app/websocket/service.go`)
+Interface de notificação implementada para integração:
+
+```go
+type NotificationService interface {
+    NotifyInviteCreated(tableID string, inviteData interface{})
+    NotifyInviteAccepted(tableID string, inviteData interface{})
+    NotifyInviteDeclined(tableID string, inviteData interface{})
+    NotifySheetCreated(tableID string, userID int, userEmail string, sheetData interface{})
+    NotifySheetUpdated(tableID string, userID int, userEmail string, sheetData interface{})
+    NotifySheetDeleted(tableID string, userID int, userEmail string, sheetData interface{})
+    NotifyRollPerformed(tableID string, userID int, userEmail string, rollData interface{})
+    NotifyTableUpdated(tableID string, userID int, userEmail string, tableData interface{})
+}
+```
+
+### Integração com Sistema Existente
+
+#### DiceHandler Integration
+```go
+// Notificação automática após rolagem bem-sucedida
+if h.notificationService != nil {
+    h.notificationService.NotifyRollPerformed(
+        sheet.TableID, 
+        userID.(int), 
+        userEmail.(string), 
+        result,
+    )
+}
+```
+
+#### Event Structure
+```json
+{
+    "type": "roll_performed",
+    "user_id": 2,
+    "user_email": "maria.player@rpg.com",
+    "table_id": "2a1eb264-c6ab-4e52-9a33-d76a612bd3cf",
+    "data": {
+        "id": "ea735f8e-d0dd-49af-9b78-0bf979d26478",
+        "expression": "1d20+8",
+        "result_value": 28,
+        "critical": true
+    },
+    "timestamp": "2025-07-11T17:09:50Z"
+}
+```
+
+### Testes WebSocket
+
+#### Script de Teste (`test_websocket.sh`)
+```bash
+# Executar teste WebSocket
+./test_websocket.sh
+
+# Teste manual com wscat
+npm install -g wscat
+wscat -c "ws://localhost:8080/api/v1/ws?table_id=MESA_ID" -H "Authorization: Bearer TOKEN"
+```
+
+#### Cenários de Teste
+1. **Conexão**: Autenticação JWT e associação à mesa
+2. **Estatísticas**: Verificação de clientes conectados
+3. **Eventos de Teste**: Broadcast manual para desenvolvimento
+4. **Notificações Automáticas**: Integração com rolagens
+
+### Arquitetura de Dependências
+
+```
+┌─────────────────┐    ┌─────────────────┐
+│   BFF Handler   │    │   Dice Handler  │
+│                 │    │                 │
+│   WebSocket     │    │   Notification  │
+│   Routes        │    │   Integration   │
+└─────────────────┘    └─────────────────┘
+        │                       │
+        ▼                       ▼
+┌─────────────────────────────────────────┐
+│          WebSocket Service              │
+│                                         │
+│  implements NotificationService         │
+└─────────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────────┐
+│            WebSocket Hub                │
+│                                         │
+│  • Client Management                   │
+│  • Event Broadcasting                  │
+│  • Table-based Grouping               │
+└─────────────────────────────────────────┘
+```
+
+### Características Técnicas
+
+#### Escalabilidade
+- **Hub Centralizado**: Gerenciamento eficiente de conexões
+- **Memory Cleanup**: Remoção automática de clientes inativos
+- **Concurrent Safe**: Mutex para operações thread-safe
+
+#### Segurança
+- **JWT Authentication**: Todas as conexões autenticadas
+- **Table Isolation**: Eventos isolados por mesa
+- **Origin Validation**: Configurável para produção
+
+#### Performance
+- **Ping/Pong**: Keep-alive automático (54s interval)
+- **Buffer Management**: Channels com buffer adequado
+- **Graceful Shutdown**: Cleanup adequado de recursos
+
+### Cliente JavaScript Exemplo
+
+```javascript
+// Conectar WebSocket
+const token = 'eyJhbGciOiJIUzI1NiIs...';
+const tableId = '2a1eb264-c6ab-4e52-9a33-d76a612bd3cf';
+const ws = new WebSocket(`ws://localhost:8080/api/v1/ws?table_id=${tableId}`, [], {
+    headers: {
+        'Authorization': `Bearer ${token}`
+    }
+});
+
+// Receber eventos
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log(`Evento ${data.type}:`, data);
+    
+    switch(data.type) {
+        case 'roll_performed':
+            showDiceRoll(data.data);
+            break;
+        case 'invite_created':
+            showNewInvite(data.data);
+            break;
+        case 'sheet_created':
+            refreshCharacterList();
+            break;
+    }
+};
+
+// Tratamento de erros
+ws.onerror = (error) => {
+    console.error('WebSocket Error:', error);
+};
+
+ws.onclose = (event) => {
+    console.log('Conexão fechada:', event.code, event.reason);
+};
+```
+
+### Status da Implementação
+- ✅ **WebSocket Hub**: Gerenciamento completo de conexões
+- ✅ **Event Types**: Todos os tipos de evento definidos  
+- ✅ **Authentication**: JWT integrado em conexões
+- ✅ **Handler Endpoints**: Conexão, stats e teste
+- ✅ **Service Integration**: Notificações em rolagens
+- ✅ **Interface Design**: NotificationService para extensibilidade
+- ✅ **Testing Scripts**: Automação de testes WebSocket
+
+### Próximos Passos WebSocket
+- [ ] Integrar notificações em GameTable operations
+- [ ] Adicionar eventos de PlayerSheet create/update/delete
+- [ ] Implementar notificações de convites aceitos/recusados
+- [ ] Adicionar heartbeat personalizado para conexões
+- [ ] Implementar rate limiting para eventos
+- [ ] Criar dashboard de monitoramento WebSocket
 ````

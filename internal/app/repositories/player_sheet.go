@@ -205,5 +205,3 @@ func (r *PlayerSheetRepository) GetTableIDBySheetID(sheetID string) (string, err
 	err := r.db.Get(&tableID, query, sheetID)
 	return tableID, err
 }
-
-

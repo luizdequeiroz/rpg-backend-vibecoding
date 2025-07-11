@@ -4,9 +4,11 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/luizdequeiroz/rpg-backend/internal/app/handlers"
 	"github.com/luizdequeiroz/rpg-backend/internal/app/middleware"
 	"github.com/luizdequeiroz/rpg-backend/internal/app/repositories"
 	"github.com/luizdequeiroz/rpg-backend/internal/app/services"
+	"github.com/luizdequeiroz/rpg-backend/internal/app/websocket"
 	"github.com/luizdequeiroz/rpg-backend/pkg/db"
 )
 
@@ -22,7 +24,10 @@ type Handler struct {
 	gameTableHandler     *GameTableHandler
 	playerSheetService   *services.PlayerSheetService
 	playerSheetHandler   *PlayerSheetHandler
-	diceHandler          *DiceHandler
+	diceHandler          *handlers.DiceHandler
+
+	wsService          *websocket.WebSocketService
+	wsHandler          *websocket.WebSocketHandler
 }
 
 // NewHandler cria um novo handler BFF
@@ -47,9 +52,15 @@ func NewHandler(database *db.DB) *Handler {
 	playerSheetService := services.NewPlayerSheetService(playerSheetRepo, rollRepo, gameTableRepo)
 	playerSheetHandler := NewPlayerSheetHandler(playerSheetService)
 
-	// Inicializar serviço e handler para Dice
+	// Inicializar serviço e handler para WebSocket
+	wsHub := websocket.NewHub()
+	go wsHub.Run() // Iniciar hub em goroutine
+	wsService := websocket.NewWebSocketService(wsHub)
+	wsHandler := websocket.NewWebSocketHandler(wsHub)
+
+	// Inicializar serviço e handler para Dice (com notificação WebSocket)
 	diceService := services.NewDiceService(rollRepo)
-	diceHandler := NewDiceHandler(diceService, playerSheetService)
+	diceHandler := handlers.NewDiceHandler(diceService, playerSheetService, wsService)
 
 	return &Handler{
 		db:                   database,
@@ -63,6 +74,8 @@ func NewHandler(database *db.DB) *Handler {
 		playerSheetService:   playerSheetService,
 		playerSheetHandler:   playerSheetHandler,
 		diceHandler:          diceHandler,
+		wsService:            wsService,
+		wsHandler:            wsHandler,
 	}
 }
 
@@ -113,8 +126,7 @@ func (h *Handler) SetupRoutes(router *gin.RouterGroup) {
 		sessions.DELETE("/:id", h.deleteSession)
 	}
 
-	// Rotas de dados/rolagens
-	h.diceHandler.SetupDiceRoutes(router, h.authService)
+	// Rotas de dados/rolagens - configuradas diretamente no BFF
 }
 
 // Handlers temporários - serão implementados com a lógica de negócio real
@@ -274,7 +286,7 @@ func (h *Handler) deleteSession(c *gin.Context) {
 // setupPlayerSheetRoutes configura rotas de fichas de personagens
 func (h *Handler) setupPlayerSheetRoutes(router *gin.RouterGroup) {
 	authMiddleware := middleware.AuthMiddleware(h.authService)
-	
+
 	// Rotas de fichas de personagens
 	sheets := router.Group("/sheets")
 	{
@@ -285,7 +297,7 @@ func (h *Handler) setupPlayerSheetRoutes(router *gin.RouterGroup) {
 		sheets.PUT("/:id", authMiddleware, h.playerSheetHandler.UpdateSheet)
 		sheets.DELETE("/:id", authMiddleware, h.playerSheetHandler.DeleteSheet)
 	}
-	
+
 	// Rotas de rolagem de dados
 	rolls := router.Group("/rolls")
 	{
@@ -293,5 +305,21 @@ func (h *Handler) setupPlayerSheetRoutes(router *gin.RouterGroup) {
 		rolls.POST("/", authMiddleware, h.playerSheetHandler.RollDice)
 		rolls.GET("/sheet/:sheetID", authMiddleware, h.playerSheetHandler.GetRollsBySheet)
 		rolls.GET("/table/:tableID", authMiddleware, h.playerSheetHandler.GetRollsByTable)
+	}
+	
+	// WebSocket routes
+	ws := router.Group("/ws")
+	{
+		ws.GET("", authMiddleware, h.wsHandler.HandleWebSocket)
+		ws.GET("/stats", authMiddleware, h.wsHandler.GetStats)
+		ws.POST("/test", authMiddleware, h.wsHandler.BroadcastTestEvent)
+	}
+	
+	// Dice routes
+	dice := router.Group("/dice")
+	{
+		dice.POST("/roll", authMiddleware, h.diceHandler.RollDice)
+		dice.POST("/roll-with-sheet", authMiddleware, h.diceHandler.RollWithSheet)
+		dice.GET("/history", authMiddleware, h.diceHandler.GetHistory)
 	}
 }

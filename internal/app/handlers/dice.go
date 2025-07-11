@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/luizdequeiroz/rpg-backend/internal/app/interfaces"
 	"github.com/luizdequeiroz/rpg-backend/internal/app/models"
 	"github.com/luizdequeiroz/rpg-backend/internal/app/services"
 )
@@ -12,12 +13,14 @@ import (
 type DiceHandler struct {
 	diceService        *services.DiceService
 	playerSheetService *services.PlayerSheetService
+	notificationService interfaces.NotificationService
 }
 
-func NewDiceHandler(diceService *services.DiceService, playerSheetService *services.PlayerSheetService) *DiceHandler {
+func NewDiceHandler(diceService *services.DiceService, playerSheetService *services.PlayerSheetService, notificationService interfaces.NotificationService) *DiceHandler {
 	return &DiceHandler{
 		diceService:        diceService,
 		playerSheetService: playerSheetService,
+		notificationService: notificationService,
 	}
 }
 
@@ -117,6 +120,17 @@ func (h *DiceHandler) RollWithSheet(c *gin.Context) {
 		return
 	}
 
+	// Notificar via WebSocket se há serviço de notificação configurado
+	if h.notificationService != nil {
+		userEmail, _ := c.Get("userEmail")
+		h.notificationService.NotifyRollPerformed(
+			sheet.TableID, 
+			userID.(int), 
+			userEmail.(string), 
+			result,
+		)
+	}
+
 	c.JSON(http.StatusOK, result)
 }
 
@@ -152,7 +166,7 @@ func (h *DiceHandler) GetHistory(c *gin.Context) {
 		limit = 10
 	}
 
-	history, total, err := h.diceService.GetUserHistory(userID.(int), page, limit)
+	rolls, total, err := h.diceService.GetUserHistory(userID.(int), page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "Erro interno",
@@ -161,13 +175,12 @@ func (h *DiceHandler) GetHistory(c *gin.Context) {
 		return
 	}
 
-	response := models.DiceHistoryResponse{
-		Rolls:      history,
-		Total:      total,
-		Page:       page,
-		Limit:      limit,
-		TotalPages: (total + limit - 1) / limit,
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Histórico de rolagens",
+		"rolls":   rolls,
+		"total":   total,
+		"page":    page,
+		"limit":   limit,
+	})
 }
+
