@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/luizdequeiroz/rpg-backend/internal/app/repositories"
 	"github.com/luizdequeiroz/rpg-backend/internal/app/services"
 	"github.com/luizdequeiroz/rpg-backend/pkg/db"
 )
@@ -16,6 +17,8 @@ type Handler struct {
 	sheetTemplateService *services.SheetTemplateService
 	sheetTemplateHandler *SheetTemplateHandler
 	userHandler          *UserHandler
+	gameTableService     *services.GameTableService
+	gameTableHandler     *GameTableHandler
 }
 
 // NewHandler cria um novo handler BFF
@@ -28,6 +31,12 @@ func NewHandler(database *db.DB) *Handler {
 
 	userHandler := NewUserHandler(authService)
 
+	// Inicializar repositórios e serviços para GameTable
+	gameTableRepo := repositories.NewGameTableRepository(database)
+	inviteRepo := repositories.NewInviteRepository(database)
+	gameTableService := services.NewGameTableService(gameTableRepo, inviteRepo)
+	gameTableHandler := NewGameTableHandler(gameTableService)
+
 	return &Handler{
 		db:                   database,
 		authService:          authService,
@@ -35,6 +44,8 @@ func NewHandler(database *db.DB) *Handler {
 		sheetTemplateService: sheetTemplateService,
 		sheetTemplateHandler: sheetTemplateHandler,
 		userHandler:          userHandler,
+		gameTableService:     gameTableService,
+		gameTableHandler:     gameTableHandler,
 	}
 }
 
@@ -48,6 +59,9 @@ func (h *Handler) SetupRoutes(router *gin.RouterGroup) {
 
 	// Rotas de usuários (usando o novo UserHandler)
 	h.userHandler.SetupUserRoutes(router, h.authService)
+
+	// Rotas de mesas de jogo
+	h.gameTableHandler.SetupGameTableRoutes(router, h.authService)
 
 	// Rotas de campanhas
 	campaigns := router.Group("/campaigns")

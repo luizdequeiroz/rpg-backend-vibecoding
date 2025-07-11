@@ -8,6 +8,8 @@ if "%1"=="run" goto run
 if "%1"=="dev" goto dev
 if "%1"=="test" goto test
 if "%1"=="test-api" goto test-api
+if "%1"=="test-integration" goto test-integration
+if "%1"=="test-full" goto test-full
 if "%1"=="migrate-up" goto migrate-up
 if "%1"=="migrate-down" goto migrate-down
 if "%1"=="migrate-status" goto migrate-status
@@ -50,6 +52,19 @@ curl -s http://localhost:8080/
 echo.
 echo Users:
 curl -s http://localhost:8080/api/v1/users
+goto end
+
+:test-integration
+echo Executando testes de integração...
+echo Verificando se servidor está rodando...
+powershell -Command "try { Invoke-RestMethod -Uri 'http://localhost:8080/health' -TimeoutSec 5 | Out-Null; Write-Host 'Servidor online - executando testes...' } catch { Write-Host 'Erro: Servidor não está rodando. Execute: scripts.bat run'; exit 1 }"
+if errorlevel 1 goto end
+powershell -ExecutionPolicy Bypass -File "test\scripts\integration_test_simple.ps1"
+goto end
+
+:test-full
+echo Executando teste completo com todos os cenários...
+powershell -ExecutionPolicy Bypass -File "test\scripts\integration_test_simple.ps1" -Verbose
 goto end
 
 :migrate-up
@@ -112,6 +127,9 @@ echo   run            - Executa o servidor
 echo   dev            - Executa em modo desenvolvimento (debug)
 echo   test           - Executa os testes
 echo   test-api       - Testa endpoints da API (servidor deve estar rodando)
+echo   test-api       - Testa endpoints básicos da API
+echo   test-integration - Executa testes de integração automatizados
+echo   test-full      - Executa testes completos com verbose
 echo   migrate-up     - Executa todas as migrações
 echo   migrate-down   - Desfaz a última migração
 echo   migrate-status - Mostra status das migrações
