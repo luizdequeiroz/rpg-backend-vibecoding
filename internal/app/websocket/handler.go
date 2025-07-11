@@ -105,7 +105,7 @@ func (h *WebSocketHandler) GetStats(c *gin.Context) {
 	}
 
 	stats := h.hub.GetConnectedClients()
-	
+
 	totalClients := 0
 	for _, count := range stats {
 		totalClients += count

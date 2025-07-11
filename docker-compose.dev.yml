@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # Aplicação principal para desenvolvimento
+  rpg-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=file:./data/rpg.db?cache=shared&mode=rwc
+      - JWT_SECRET=dev-jwt-secret-change-in-production
+      - LOG_LEVEL=debug
+      - HOST=0.0.0.0
+      - PORT=8080
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    working_dir: /app
+    command: ["go", "run", "cmd/api/main.go"]
+    depends_on:
+      - test-db
+
+  # Banco de dados para testes (SQLite não precisa de container separado)
+  test-db:
+    image: alpine:latest
+    volumes:
+      - ./data:/data
+    command: ["sh", "-c", "mkdir -p /data && touch /data/test.db && tail -f /dev/null"]
+
+  # Serviço para executar testes
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    environment:
+      - DATABASE_URL=file:./data/test.db?cache=shared&mode=rwc
+      - JWT_SECRET=test-jwt-secret-for-testing-only
+      - LOG_LEVEL=error
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    working_dir: /app
+    command: ["go", "test", "./...", "-v", "-race", "-coverprofile=coverage.out"]
+    depends_on:
+      - test-db
+
+  # Serviço para executar testes de integração
+  integration-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    environment:
+      - DATABASE_URL=file::memory:?cache=shared
+      - JWT_SECRET=integration-test-jwt-secret
+      - LOG_LEVEL=error
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: ["go", "test", "./tests/integration/...", "-v", "-race"]
+
+  # Serviço para executar benchmarks
+  benchmark:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    environment:
+      - DATABASE_URL=file::memory:?cache=shared
+      - JWT_SECRET=benchmark-jwt-secret
+      - LOG_LEVEL=error
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: ["go", "test", "./...", "-bench=.", "-benchmem", "-run=^$"]
+
+volumes:
+  data:
+    driver: local

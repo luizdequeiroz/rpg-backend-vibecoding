@@ -11,15 +11,15 @@ import (
 )
 
 type DiceHandler struct {
-	diceService        *services.DiceService
-	playerSheetService *services.PlayerSheetService
+	diceService         *services.DiceService
+	playerSheetService  *services.PlayerSheetService
 	notificationService interfaces.NotificationService
 }
 
 func NewDiceHandler(diceService *services.DiceService, playerSheetService *services.PlayerSheetService, notificationService interfaces.NotificationService) *DiceHandler {
 	return &DiceHandler{
-		diceService:        diceService,
-		playerSheetService: playerSheetService,
+		diceService:         diceService,
+		playerSheetService:  playerSheetService,
 		notificationService: notificationService,
 	}
 }
@@ -124,9 +124,9 @@ func (h *DiceHandler) RollWithSheet(c *gin.Context) {
 	if h.notificationService != nil {
 		userEmail, _ := c.Get("userEmail")
 		h.notificationService.NotifyRollPerformed(
-			sheet.TableID, 
-			userID.(int), 
-			userEmail.(string), 
+			sheet.TableID,
+			userID.(int),
+			userEmail.(string),
 			result,
 		)
 	}
@@ -183,4 +183,3 @@ func (h *DiceHandler) GetHistory(c *gin.Context) {
 		"limit":   limit,
 	})
 }
-

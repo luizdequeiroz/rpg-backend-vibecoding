@@ -13,14 +13,14 @@ import (
 type EventType string
 
 const (
-	EventInviteCreated   EventType = "invite_created"
-	EventInviteAccepted  EventType = "invite_accepted"
-	EventInviteDeclined  EventType = "invite_declined"
-	EventSheetCreated    EventType = "sheet_created"
-	EventSheetUpdated    EventType = "sheet_updated"
-	EventSheetDeleted    EventType = "sheet_deleted"
-	EventRollPerformed   EventType = "roll_performed"
-	EventTableUpdated    EventType = "table_updated"
+	EventInviteCreated  EventType = "invite_created"
+	EventInviteAccepted EventType = "invite_accepted"
+	EventInviteDeclined EventType = "invite_declined"
+	EventSheetCreated   EventType = "sheet_created"
+	EventSheetUpdated   EventType = "sheet_updated"
+	EventSheetDeleted   EventType = "sheet_deleted"
+	EventRollPerformed  EventType = "roll_performed"
+	EventTableUpdated   EventType = "table_updated"
 )
 
 // Event representa um evento WebSocket
@@ -47,13 +47,13 @@ type Client struct {
 type Hub struct {
 	// Clientes registrados agrupados por mesa
 	clients map[string]map[*Client]bool
-	
+
 	// Canal para registrar novos clientes
 	register chan *Client
-	
+
 	// Canal para desregistrar clientes
 	unregister chan *Client
-	
+
 	// Mutex para operações thread-safe
 	mutex sync.RWMutex
 }
@@ -78,17 +78,17 @@ func (h *Hub) Run() {
 			}
 			h.clients[client.tableID][client] = true
 			h.mutex.Unlock()
-			
-			log.Printf("Cliente conectado: UserID=%d, Email=%s, TableID=%s", 
+
+			log.Printf("Cliente conectado: UserID=%d, Email=%s, TableID=%s",
 				client.userID, client.email, client.tableID)
-			
+
 		case client := <-h.unregister:
 			h.mutex.Lock()
 			if tableClients, exists := h.clients[client.tableID]; exists {
 				if _, exists := tableClients[client]; exists {
 					delete(tableClients, client)
 					close(client.send)
-					
+
 					// Remove mesa se não há mais clientes
 					if len(tableClients) == 0 {
 						delete(h.clients, client.tableID)
@@ -96,8 +96,8 @@ func (h *Hub) Run() {
 				}
 			}
 			h.mutex.Unlock()
-			
-			log.Printf("Cliente desconectado: UserID=%d, Email=%s, TableID=%s", 
+
+			log.Printf("Cliente desconectado: UserID=%d, Email=%s, TableID=%s",
 				client.userID, client.email, client.tableID)
 		}
 	}
@@ -113,22 +113,22 @@ func (h *Hub) BroadcastToTable(tableID string, eventType EventType, userID int, 
 		Data:      data,
 		Timestamp: getTimestamp(),
 	}
-	
+
 	eventJSON, err := json.Marshal(event)
 	if err != nil {
 		log.Printf("Erro ao serializar evento: %v", err)
 		return
 	}
-	
+
 	h.mutex.RLock()
 	tableClients := h.clients[tableID]
 	h.mutex.RUnlock()
-	
+
 	if tableClients == nil {
 		log.Printf("Nenhum cliente conectado na mesa %s", tableID)
 		return
 	}
-	
+
 	for client := range tableClients {
 		select {
 		case client.send <- eventJSON:
@@ -144,8 +144,8 @@ func (h *Hub) BroadcastToTable(tableID string, eventType EventType, userID int, 
 			h.mutex.Unlock()
 		}
 	}
-	
-	log.Printf("Evento %s enviado para %d clientes na mesa %s", 
+
+	log.Printf("Evento %s enviado para %d clientes na mesa %s",
 		eventType, len(tableClients), tableID)
 }
 
@@ -153,12 +153,12 @@ func (h *Hub) BroadcastToTable(tableID string, eventType EventType, userID int, 
 func (h *Hub) GetConnectedClients() map[string]int {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
-	
+
 	result := make(map[string]int)
 	for tableID, tableClients := range h.clients {
 		result[tableID] = len(tableClients)
 	}
-	
+
 	return result
 }
 
@@ -168,14 +168,14 @@ func (c *Client) readPump() {
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
-	
+
 	// Configurar timeouts
 	c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	c.conn.SetPongHandler(func(string) error {
 		c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 		return nil
 	})
-	
+
 	for {
 		_, _, err := c.conn.ReadMessage()
 		if err != nil {
@@ -194,7 +194,7 @@ func (c *Client) writePump() {
 		ticker.Stop()
 		c.conn.Close()
 	}()
-	
+
 	for {
 		select {
 		case message, ok := <-c.send:
@@ -203,24 +203,24 @@ func (c *Client) writePump() {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-			
+
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
 			}
 			w.Write(message)
-			
+
 			// Adicionar mensagens em fila ao mesmo writer
 			n := len(c.send)
 			for i := 0; i < n; i++ {
 				w.Write([]byte{'\n'})
 				w.Write(<-c.send)
 			}
-			
+
 			if err := w.Close(); err != nil {
 				return
 			}
-			
+
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {

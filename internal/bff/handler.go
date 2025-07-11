@@ -26,8 +26,8 @@ type Handler struct {
 	playerSheetHandler   *PlayerSheetHandler
 	diceHandler          *handlers.DiceHandler
 
-	wsService          *websocket.WebSocketService
-	wsHandler          *websocket.WebSocketHandler
+	wsService *websocket.WebSocketService
+	wsHandler *websocket.WebSocketHandler
 }
 
 // NewHandler cria um novo handler BFF
@@ -306,7 +306,7 @@ func (h *Handler) setupPlayerSheetRoutes(router *gin.RouterGroup) {
 		rolls.GET("/sheet/:sheetID", authMiddleware, h.playerSheetHandler.GetRollsBySheet)
 		rolls.GET("/table/:tableID", authMiddleware, h.playerSheetHandler.GetRollsByTable)
 	}
-	
+
 	// WebSocket routes
 	ws := router.Group("/ws")
 	{
@@ -314,7 +314,7 @@ func (h *Handler) setupPlayerSheetRoutes(router *gin.RouterGroup) {
 		ws.GET("/stats", authMiddleware, h.wsHandler.GetStats)
 		ws.POST("/test", authMiddleware, h.wsHandler.BroadcastTestEvent)
 	}
-	
+
 	// Dice routes
 	dice := router.Group("/dice")
 	{

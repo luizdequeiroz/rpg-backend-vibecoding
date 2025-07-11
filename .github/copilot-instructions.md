@@ -1219,4 +1219,262 @@ ws.onclose = (event) => {
 - [ ] Adicionar heartbeat personalizado para conexões
 - [ ] Implementar rate limiting para eventos
 - [ ] Criar dashboard de monitoramento WebSocket
+
+## Fase 10: Testes Unitários e CI/CD
+
+![Tests](https://img.shields.io/github/actions/workflow/status/luizdequeiroz/rpg-backend/ci.yml?branch=main&label=tests)
+![Coverage](https://img.shields.io/badge/coverage-80%25+-green)
+![Go Version](https://img.shields.io/badge/go-1.24+-blue)
+
+### Funcionalidades Implementadas
+- ✅ **Testes Unitários Completos**:
+  - `pkg/roll/engine_test.go` - Motor de dados
+  - `pkg/db/db_test.go` - Camada de banco
+  - `internal/app/services/auth_test.go` - Serviços de autenticação
+
+- ✅ **Testes de Integração**:
+  - `tests/integration/api_test.go` - Endpoints da API
+  - Banco SQLite em memória para testes
+  - Fluxos completos de autenticação
+
+- ✅ **Cobertura de Código**:
+  - Meta mínima: 80% em handlers, roll engine e db layer
+  - Relatórios HTML e texto
+  - Validação automática no CI
+
+- ✅ **Ferramentas de Teste**:
+  - `testify/assert` - Assertions
+  - `testify/mock` - Mocks para testes unitários
+  - `sqlmock` - Mock de banco de dados
+  - Benchmarks de performance
+
+- ✅ **Docker para Testes**:
+  - `docker-compose.dev.yml` - Ambiente de desenvolvimento
+  - `Dockerfile.test` - Container específico para testes
+  - SQLite in-memory para isolamento
+
+- ✅ **GitHub Actions CI/CD**:
+  - `.github/workflows/ci.yml` - Pipeline completo
+  - Análise estática (`go fmt`, `go vet`)
+  - Testes automatizados com cobertura
+  - Build e publicação de imagens Docker
+
+### Como Executar Testes
+
+#### Scripts Automatizados
+```bash
+# Linux/macOS
+chmod +x run-tests.sh
+./run-tests.sh
+
+# Windows
+run-tests.bat
+```
+
+#### Comandos Individuais
+```bash
+# Testes unitários
+go test ./pkg/... ./internal/app/services/... -v -race
+
+# Testes de integração
+go test ./tests/integration/... -v -race
+
+# Todos os testes com cobertura
+go test ./... -v -race -coverprofile=coverage.out
+
+# Verificar cobertura
+go tool cover -func=coverage.out
+go tool cover -html=coverage.out -o coverage.html
+
+# Benchmarks
+go test ./pkg/roll/... -bench=. -benchmem -run=^$
+
+# Análise estática
+go fmt ./...
+go vet ./...
+```
+
+#### Via Docker
+```bash
+# Executar todos os testes
+docker-compose -f docker-compose.dev.yml run test-runner
+
+# Testes de integração
+docker-compose -f docker-compose.dev.yml run integration-tests
+
+# Benchmarks
+docker-compose -f docker-compose.dev.yml run benchmark
+```
+
+### Estrutura de Testes
+
+#### Testes Unitários
+```
+pkg/
+├── roll/
+│   └── engine_test.go     # Motor de dados
+└── db/
+    └── db_test.go         # Camada de banco
+
+internal/app/services/
+└── auth_test.go          # Serviços de autenticação
+```
+
+#### Testes de Integração
+```
+tests/
+└── integration/
+    └── api_test.go       # Endpoints da API completa
+```
+
+### Cobertura de Código
+
+#### Metas de Cobertura
+- **Motor de Dados**: >90% (crítico para rolagens)
+- **Handlers HTTP**: >80% (endpoints principais)
+- **Serviços**: >85% (lógica de negócio)
+- **DB Layer**: >80% (operações de dados)
+- **Total**: >80% (meta global)
+
+#### Verificação de Cobertura
+```bash
+# Verificar cobertura total
+COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
+echo "Cobertura: ${COVERAGE}%"
+
+# Relatório detalhado
+go tool cover -func=coverage.out
+
+# Relatório HTML interativo
+go tool cover -html=coverage.out -o coverage.html
+```
+
+### GitHub Actions Pipeline
+
+#### Jobs Configurados
+1. **Test and Code Quality**:
+   - Verificação de formatação (`go fmt`)
+   - Análise estática (`go vet`)
+   - Testes unitários e integração
+   - Validação de cobertura mínima
+   - Upload para Codecov
+
+2. **Build Application**:
+   - Build dos binários
+   - Validação dos executáveis
+   - Upload dos artefatos
+
+3. **Docker Build & Push** (apenas main):
+   - Build da imagem Docker otimizada
+   - Push para GitHub Container Registry
+   - Suporte para Docker Hub (opcional)
+
+4. **Deploy** (placeholder):
+   - Preparado para deploy automático
+   - Ambiente de produção configurável
+
+#### Configuração de Secrets
+```yaml
+# GitHub Repository Secrets (opcionais)
+DOCKER_USERNAME: seu-usuario-docker-hub
+DOCKER_PASSWORD: sua-senha-docker-hub
+CODECOV_TOKEN: token-do-codecov
+```
+
+### Docker para Desenvolvimento
+
+#### Imagens Disponíveis
+- `Dockerfile` - Produção (multi-stage, otimizada)
+- `Dockerfile.dev` - Desenvolvimento (hot reload)
+- `Dockerfile.test` - Testes (ferramentas incluídas)
+
+#### Comandos Docker
+```bash
+# Desenvolvimento
+docker-compose -f docker-compose.dev.yml up rpg-backend
+
+# Executar testes
+docker-compose -f docker-compose.dev.yml up test-runner
+
+# Build para produção
+docker build -t rpg-backend:latest .
+
+# Executar em produção
+docker run -p 8080:8080 -e JWT_SECRET=your-secret rpg-backend:latest
+```
+
+### Melhores Práticas de Teste
+
+#### Estrutura de Teste
+```go
+func TestFunctionName(t *testing.T) {
+    // Arrange - configurar dados de teste
+    input := setupTestData()
+    
+    // Act - executar função
+    result, err := functionUnderTest(input)
+    
+    // Assert - verificar resultados
+    assert.NoError(t, err)
+    assert.Equal(t, expectedValue, result)
+}
+```
+
+#### Uso de Mocks
+```go
+// Criar mock
+mockRepo := &MockRepository{}
+mockRepo.On("Method", args).Return(expectedResult, nil)
+
+// Usar mock
+service := NewService(mockRepo)
+result := service.DoSomething()
+
+// Verificar mock
+mockRepo.AssertExpectations(t)
+```
+
+#### Testes de Integração
+```go
+func TestAPIEndpoint(t *testing.T) {
+    // Setup test database
+    db := setupTestDB()
+    defer db.Close()
+    
+    // Setup router
+    router := setupTestRouter(db)
+    
+    // Make request
+    req := httptest.NewRequest("GET", "/api/endpoint", nil)
+    w := httptest.NewRecorder()
+    router.ServeHTTP(w, req)
+    
+    // Assert response
+    assert.Equal(t, http.StatusOK, w.Code)
+}
+```
+
+### Métricas e Monitoramento
+
+#### Arquivos Gerados
+- `coverage.out` - Dados de cobertura raw
+- `coverage.html` - Relatório interativo
+- `benchmark-results.txt` - Resultados de performance
+- `unit-coverage.out` - Cobertura testes unitários
+- `integration-coverage.out` - Cobertura testes integração
+
+#### Badges de Status
+```markdown
+![Tests](https://img.shields.io/github/actions/workflow/status/usuario/repo/ci.yml)
+![Coverage](https://img.shields.io/badge/coverage-85%25-green)
+![Go Report](https://goreportcard.com/badge/github.com/usuario/repo)
+```
+
+### Próximos Passos
+- [ ] Adicionar testes para WebSocket (Fase 9)
+- [ ] Implementar testes de carga com `go test -bench`
+- [ ] Configurar deploy automático
+- [ ] Adicionar mutation testing
+- [ ] Implementar health checks avançados
+- [ ] Configurar monitoring com Prometheus
 ````

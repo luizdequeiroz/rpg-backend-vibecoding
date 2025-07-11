@@ -2,7 +2,7 @@ package websocket
 
 import (
 	"log"
-	
+
 	"github.com/luizdequeiroz/rpg-backend/internal/app/interfaces"
 )
 
