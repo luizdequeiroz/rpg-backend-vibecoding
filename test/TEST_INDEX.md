@@ -5,26 +5,37 @@
 ```
 test/
 ├── fixtures/                          # Dados de teste (JSON)
+│   ├── auth_login.json                # Login de usuário
 │   ├── auth_signup_admin.json         # Dados do administrador
 │   ├── auth_signup_master.json        # Dados do mestre/gamemaster  
 │   ├── auth_signup_player.json        # Dados do jogador principal
 │   ├── auth_signup_player2.json       # Dados do segundo jogador
+│   ├── auth_signup_player_old.json    # Dados antigos (backup)
 │   ├── game_table_create.json         # Mesa D&D padrão
+│   ├── game_table_create_old.json     # Mesa antiga (backup)
 │   ├── game_table_vampiro.json        # Mesa Vampiro: A Máscara ⭐
 │   ├── game_table_cthulhu.json        # Mesa Call of Cthulhu
 │   ├── game_table_update.json         # Dados para atualização
 │   ├── invite_create.json             # Convite para jogador principal
-│   └── invite_create_player2.json     # Convite para segundo jogador
+│   ├── invite_create_old.json         # Convite antigo (backup)
+│   ├── invite_create_player2.json     # Convite para segundo jogador
+│   ├── sheet_template_create.json     # Template básico de ficha
+│   ├── sheet_template_gurps.json      # Template GURPS
+│   └── sheet_template_gurps_update.json # Atualização template GURPS
 │
 ├── scripts/                           # Scripts de automação
+│   ├── auth_test_me.ps1              # Teste de endpoint /me
 │   ├── test_config.ps1               # Configurações comuns
 │   ├── quick_test.ps1                # Teste rápido (2-3 min)
 │   ├── integration_test_simple.ps1   # Teste integração (5 min) ⭐
 │   ├── integration_test.ps1          # Teste completo (problema encoding)
 │   ├── test_game_tables_v2.ps1       # Versão v2 (problema encoding) 
 │   ├── test_game_tables.ps1          # Versão original
+│   ├── test_game_tables_root.ps1     # Versão da raiz (movida)
 │   ├── test_game_tables.sh           # Versão Linux/macOS
-│   └── test_game_tables.bat          # Versão Windows CMD
+│   ├── test_game_tables_root.sh      # Versão da raiz (movida)
+│   ├── test_game_tables.bat          # Versão Windows CMD
+│   └── test_game_tables_root.bat     # Versão da raiz (movida)
 │
 └── README.md                         # Documentação detalhada
 ```
@@ -41,6 +52,12 @@ test/
 - **Uso**: `powershell -ExecutionPolicy Bypass -File "./test/scripts/quick_test.ps1"`
 - **Tempo**: ~2 minutos  
 - **Cobertura**: Endpoints básicos e autenticação
+- **Status**: ✅ Funcionando
+
+### 🔐 **auth_test_me.ps1** - TESTE ESPECÍFICO
+- **Uso**: `powershell -ExecutionPolicy Bypass -File "./test/scripts/auth_test_me.ps1"`
+- **Tempo**: ~30 segundos
+- **Cobertura**: Teste do endpoint /api/v1/auth/me
 - **Status**: ✅ Funcionando
 
 ## 🚀 Como Executar

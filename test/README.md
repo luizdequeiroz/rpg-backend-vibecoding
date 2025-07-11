@@ -13,20 +13,29 @@ test/
 ## Fixtures (Dados de Teste)
 
 ### Autenticação
+- `auth_login.json` - Dados para login de usuário
 - `auth_signup_master.json` - Dados para registro do mestre
 - `auth_signup_player.json` - Dados para registro do jogador
 - `auth_signup_player2.json` - Dados para registro de segundo jogador
 - `auth_signup_admin.json` - Dados para registro de administrador
+- `auth_signup_player_old.json` - Dados antigos (backup)
 
 ### Mesas de Jogo
 - `game_table_create.json` - Dados para criar mesa D&D
+- `game_table_create_old.json` - Dados antigos (backup)
 - `game_table_vampiro.json` - Dados para criar mesa de Vampiro
 - `game_table_cthulhu.json` - Dados para criar mesa de Call of Cthulhu
 - `game_table_update.json` - Dados para atualizar mesa existente
 
 ### Convites
 - `invite_create.json` - Dados para criar convite para jogador principal
+- `invite_create_old.json` - Dados antigos (backup)
 - `invite_create_player2.json` - Dados para criar convite para segundo jogador
+
+### Templates de Fichas
+- `sheet_template_create.json` - Template básico de ficha
+- `sheet_template_gurps.json` - Template para sistema GURPS
+- `sheet_template_gurps_update.json` - Atualização do template GURPS
 
 ## Scripts de Teste
 
