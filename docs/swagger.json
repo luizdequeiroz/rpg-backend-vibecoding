@@ -170,6 +170,1203 @@
                 }
             }
         },
+        "/api/v1/rolls": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Executa rolagem de dados baseada em expressão ou campo da ficha",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Player Sheets"
+                ],
+                "summary": "Rolar dados",
+                "parameters": [
+                    {
+                        "description": "Dados da rolagem",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreateRollRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.RollResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/rolls/sheet/{sheetID}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista histórico de rolagens de uma ficha específica",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Player Sheets"
+                ],
+                "summary": "Listar rolagens da ficha",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da ficha",
+                        "name": "sheetID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Página",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Itens por página",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/rolls/table/{tableID}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista histórico de rolagens de uma mesa",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Player Sheets"
+                ],
+                "summary": "Listar rolagens da mesa",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da mesa",
+                        "name": "tableID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Página",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Itens por página",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sheets": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista todas as fichas de personagens de uma mesa",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Player Sheets"
+                ],
+                "summary": "Listar fichas da mesa",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da mesa",
+                        "name": "table_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Página",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Itens por página",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cria nova ficha de personagem em uma mesa",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Player Sheets"
+                ],
+                "summary": "Criar ficha de personagem",
+                "parameters": [
+                    {
+                        "description": "Dados da ficha",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreatePlayerSheetRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.PlayerSheetResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sheets/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Busca ficha de personagem por ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Player Sheets"
+                ],
+                "summary": "Buscar ficha",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da ficha",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.PlayerSheetResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Atualiza dados de uma ficha de personagem",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Player Sheets"
+                ],
+                "summary": "Atualizar ficha",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da ficha",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Dados para atualização",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdatePlayerSheetRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.PlayerSheetResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove uma ficha de personagem",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Player Sheets"
+                ],
+                "summary": "Remover ficha",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da ficha",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tables": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Lista todas as mesas onde o usuário é proprietário ou convidado aceito",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GameTables"
+                ],
+                "summary": "Listar mesas do usuário",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Número da página",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Itens por página",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de mesas",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Cria uma nova mesa de jogo. O usuário autenticado se torna o proprietário.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GameTables"
+                ],
+                "summary": "Criar nova mesa de jogo",
+                "parameters": [
+                    {
+                        "description": "Dados da mesa",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreateGameTableRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.GameTableResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Dados inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tables/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Retorna detalhes de uma mesa específica, incluindo convites se o usuário for o proprietário",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GameTables"
+                ],
+                "summary": "Buscar mesa por ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da mesa",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.GameTableResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "ID inválido",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Acesso negado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Mesa não encontrada",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Atualiza nome e/ou sistema de uma mesa. Apenas o proprietário pode atualizar.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GameTables"
+                ],
+                "summary": "Atualizar mesa",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da mesa",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Dados para atualização",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateGameTableRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.GameTableResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Dados inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Apenas proprietário pode atualizar",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Mesa não encontrada",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Remove uma mesa permanentemente. Apenas o proprietário pode remover.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GameTables"
+                ],
+                "summary": "Remover mesa",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da mesa",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Mesa removida com sucesso"
+                    },
+                    "400": {
+                        "description": "ID inválido",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Apenas proprietário pode remover",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Mesa não encontrada",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tables/{id}/invites": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Lista todos os convites de uma mesa. Acessível pelo proprietário e convidados.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GameTables"
+                ],
+                "summary": "Listar convites da mesa",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da mesa",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de convites",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "ID inválido",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Acesso negado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Mesa não encontrada",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Cria um convite para um usuário participar da mesa. Apenas o proprietário pode criar convites.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GameTables"
+                ],
+                "summary": "Criar convite para mesa",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da mesa",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Email do usuário a ser convidado",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreateInviteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.InviteDetails"
+                        }
+                    },
+                    "400": {
+                        "description": "Dados inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Apenas proprietário pode criar convites",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Mesa ou usuário não encontrado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "Convite já existe",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tables/{id}/invites/{inviteId}/accept": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Aceita um convite para participar da mesa. Apenas o convidado pode aceitar.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GameTables"
+                ],
+                "summary": "Aceitar convite",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da mesa",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID do convite",
+                        "name": "inviteId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Convite aceito",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "ID inválido",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Apenas convidado pode aceitar",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Convite não encontrado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "Convite já respondido",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tables/{id}/invites/{inviteId}/decline": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Recusa um convite para participar da mesa. Apenas o convidado pode recusar.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GameTables"
+                ],
+                "summary": "Recusar convite",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID da mesa",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID do convite",
+                        "name": "inviteId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Convite recusado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "ID inválido",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Apenas convidado pode recusar",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Convite não encontrado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "Convite já respondido",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/templates": {
             "get": {
                 "description": "Retorna uma lista paginada de todos os templates de ficha ativos",
@@ -561,6 +1758,80 @@
                 }
             }
         },
+        "models.CreateGameTableRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "system"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 3
+                },
+                "system": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 2
+                }
+            }
+        },
+        "models.CreateInviteRequest": {
+            "type": "object",
+            "required": [
+                "invitee_email"
+            ],
+            "properties": {
+                "invitee_email": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.CreatePlayerSheetRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "table_id",
+                "template_id"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.PlayerSheetData"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 3
+                },
+                "table_id": {
+                    "type": "string"
+                },
+                "template_id": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            }
+        },
+        "models.CreateRollRequest": {
+            "type": "object",
+            "required": [
+                "sheet_id"
+            ],
+            "properties": {
+                "expression": {
+                    "type": "string",
+                    "maxLength": 200
+                },
+                "field_name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "sheet_id": {
+                    "type": "string"
+                }
+            }
+        },
         "models.CreateSheetTemplateRequest": {
             "type": "object",
             "required": [
@@ -601,6 +1872,209 @@
                 "message": {
                     "type": "string",
                     "example": "Detalhes adicionais do erro"
+                }
+            }
+        },
+        "models.GameTable": {
+            "type": "object",
+            "required": [
+                "name",
+                "system"
+            ],
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 3
+                },
+                "owner_id": {
+                    "type": "integer"
+                },
+                "system": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 2
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.GameTableResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "invites": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.InviteDetails"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "owner": {
+                    "$ref": "#/definitions/models.UserResponse"
+                },
+                "owner_id": {
+                    "type": "integer"
+                },
+                "system": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.InviteDetails": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "invitee": {
+                    "$ref": "#/definitions/models.UserResponse"
+                },
+                "invitee_id": {
+                    "type": "integer"
+                },
+                "inviter": {
+                    "$ref": "#/definitions/models.UserResponse"
+                },
+                "inviter_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "table": {
+                    "$ref": "#/definitions/models.GameTable"
+                },
+                "table_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.PlayerSheetData": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "models.PlayerSheetResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "data": {
+                    "$ref": "#/definitions/models.PlayerSheetData"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "owner": {
+                    "$ref": "#/definitions/models.UserResponse"
+                },
+                "owner_id": {
+                    "type": "integer"
+                },
+                "table_id": {
+                    "type": "string"
+                },
+                "template": {
+                    "$ref": "#/definitions/models.TemplateInfo"
+                },
+                "template_id": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.RollDetails": {
+            "type": "object",
+            "properties": {
+                "critical": {
+                    "description": "Se foi crítico",
+                    "type": "boolean"
+                },
+                "dice": {
+                    "description": "Valores individuais dos dados",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "fumble": {
+                    "description": "Se foi fumble",
+                    "type": "boolean"
+                },
+                "modifier": {
+                    "description": "Modificador aplicado",
+                    "type": "integer"
+                },
+                "total": {
+                    "description": "Resultado final",
+                    "type": "integer"
+                }
+            }
+        },
+        "models.RollResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "expression": {
+                    "type": "string"
+                },
+                "field_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "result_details": {
+                    "$ref": "#/definitions/models.RollDetails"
+                },
+                "result_value": {
+                    "type": "integer"
+                },
+                "sheet_id": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                },
+                "table_id": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.UserResponse"
+                },
+                "user_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -717,6 +2191,48 @@
                 }
             }
         },
+        "models.TemplateInfo": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.UpdateGameTableRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 3
+                },
+                "system": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 2
+                }
+            }
+        },
+        "models.UpdatePlayerSheetRequest": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.PlayerSheetData"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 3
+                }
+            }
+        },
         "models.UpdateSheetTemplateRequest": {
             "type": "object",
             "properties": {
@@ -776,6 +2292,17 @@
                 "password": {
                     "type": "string",
                     "example": "senha123"
+                }
+            }
+        },
+        "models.UserResponse": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
                 }
             }
         },

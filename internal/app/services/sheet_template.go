@@ -123,21 +123,6 @@ func (s *SheetTemplateService) Delete(id int) error {
 	return s.repo.Delete(id)
 }
 
-// GetBySystem retorna templates por sistema
-func (s *SheetTemplateService) GetBySystem(system string) ([]models.SheetTemplateResponse, error) {
-	templates, err := s.repo.GetBySystem(system)
-	if err != nil {
-		return nil, err
-	}
-
-	responses := make([]models.SheetTemplateResponse, len(templates))
-	for i, template := range templates {
-		responses[i] = template.ToResponse()
-	}
-
-	return responses, nil
-}
-
 // validateDefinition valida se a definição JSON é válida
 func (s *SheetTemplateService) validateDefinition(definition json.RawMessage) error {
 	var temp interface{}
@@ -167,25 +152,6 @@ func (s *SheetTemplateService) ValidateCreateRequest(req models.CreateSheetTempl
 			Field:   "name",
 			Message: "Nome deve ter no máximo 100 caracteres",
 			Value:   req.Name,
-		})
-	}
-
-	if req.System == "" {
-		errors = append(errors, models.SheetTemplateValidationError{
-			Field:   "system",
-			Message: "Sistema é obrigatório",
-		})
-	} else if len(req.System) < 2 {
-		errors = append(errors, models.SheetTemplateValidationError{
-			Field:   "system",
-			Message: "Sistema deve ter pelo menos 2 caracteres",
-			Value:   req.System,
-		})
-	} else if len(req.System) > 50 {
-		errors = append(errors, models.SheetTemplateValidationError{
-			Field:   "system",
-			Message: "Sistema deve ter no máximo 50 caracteres",
-			Value:   req.System,
 		})
 	}
 
@@ -233,27 +199,6 @@ func (s *SheetTemplateService) ValidateUpdateRequest(req models.UpdateSheetTempl
 				Field:   "name",
 				Message: "Nome deve ter no máximo 100 caracteres",
 				Value:   *req.Name,
-			})
-		}
-	}
-
-	if req.System != nil {
-		if *req.System == "" {
-			errors = append(errors, models.SheetTemplateValidationError{
-				Field:   "system",
-				Message: "Sistema não pode ser vazio",
-			})
-		} else if len(*req.System) < 2 {
-			errors = append(errors, models.SheetTemplateValidationError{
-				Field:   "system",
-				Message: "Sistema deve ter pelo menos 2 caracteres",
-				Value:   *req.System,
-			})
-		} else if len(*req.System) > 50 {
-			errors = append(errors, models.SheetTemplateValidationError{
-				Field:   "system",
-				Message: "Sistema deve ter no máximo 50 caracteres",
-				Value:   *req.System,
 			})
 		}
 	}

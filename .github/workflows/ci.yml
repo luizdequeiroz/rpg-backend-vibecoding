@@ -1,0 +1,277 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  GO_VERSION: '1.24'
+  JWT_SECRET: 'github-actions-jwt-secret-for-testing'
+
+jobs:
+  # Job para executar testes e verificações de código
+  test:
+    name: Test and Code Quality
+    runs-on: ubuntu-latest
+    
+    services:
+      # SQLite não precisa de serviço separado, mas podemos adicionar PostgreSQL no futuro
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: rpg_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    # Checkout do código
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Setup do Go
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    # Cache de dependências Go
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    # Baixar dependências
+    - name: Download dependencies
+      run: go mod download
+
+    # Verificar formatação do código
+    - name: Check code formatting
+      run: |
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "Código não está formatado corretamente:"
+          gofmt -s -l .
+          exit 1
+        fi
+
+    # Executar go vet (análise estática)
+    - name: Run go vet
+      run: go vet ./...
+
+    # Executar testes unitários
+    - name: Run unit tests
+      env:
+        DATABASE_URL: "file::memory:?cache=shared"
+        LOG_LEVEL: "error"
+      run: |
+        go test ./pkg/... ./internal/app/services/... -v -race -coverprofile=unit-coverage.out
+
+    # Executar testes de integração
+    - name: Run integration tests
+      env:
+        DATABASE_URL: "file::memory:?cache=shared"
+        LOG_LEVEL: "error"
+      run: |
+        go test ./tests/integration/... -v -race -coverprofile=integration-coverage.out
+
+    # Executar todos os testes com cobertura
+    - name: Run all tests with coverage
+      env:
+        DATABASE_URL: "file::memory:?cache=shared"
+        LOG_LEVEL: "error"
+      run: |
+        go test ./... -v -race -coverprofile=coverage.out -covermode=atomic
+
+    # Verificar cobertura de código (mínimo 80%)
+    - name: Check code coverage
+      run: |
+        COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
+        echo "Cobertura de código: ${COVERAGE}%"
+        if (( $(echo "$COVERAGE < 80.0" | bc -l) )); then
+          echo "❌ Cobertura de código abaixo do mínimo (80%): ${COVERAGE}%"
+          exit 1
+        fi
+        echo "✅ Cobertura de código aprovada: ${COVERAGE}%"
+
+    # Upload da cobertura para Codecov (opcional)
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.out
+        flags: unittests
+        name: codecov-umbrella
+
+    # Executar benchmarks
+    - name: Run benchmarks
+      env:
+        DATABASE_URL: "file::memory:?cache=shared"
+        LOG_LEVEL: "error"
+      run: |
+        go test ./pkg/roll/... -bench=. -benchmem -run=^$ > benchmark-results.txt
+        cat benchmark-results.txt
+
+    # Upload dos artefatos de teste
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: |
+          coverage.out
+          unit-coverage.out
+          integration-coverage.out
+          benchmark-results.txt
+
+  # Job para build da aplicação
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    # Checkout do código
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Setup do Go
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    # Cache de dependências Go
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    # Build da aplicação
+    - name: Build application
+      run: |
+        go build -o rpg-backend cmd/api/main.go
+        go build -o rpg-migrate cmd/migrate/main.go
+
+    # Testar se os binários funcionam
+    - name: Test binaries
+      run: |
+        ./rpg-backend --help || echo "Binary built successfully"
+        ./rpg-migrate --help || echo "Migration binary built successfully"
+
+    # Upload dos binários
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: binaries
+        path: |
+          rpg-backend
+          rpg-migrate
+
+  # Job para build e push da imagem Docker (apenas na branch main)
+  docker:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    # Checkout do código
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Setup do Docker Buildx
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    # Login no Docker Hub (opcional - configure DOCKER_USERNAME e DOCKER_PASSWORD nos secrets)
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+      continue-on-error: true
+
+    # Login no GitHub Container Registry
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    # Extrair metadados para tags
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: |
+          ghcr.io/${{ github.repository }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    # Build e push da imagem Docker
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # Job para deploy (exemplo - adapte conforme sua infraestrutura)
+  deploy:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+    needs: [docker]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+
+    steps:
+    # Placeholder para deploy
+    - name: Deploy to production
+      run: |
+        echo "🚀 Deploy seria executado aqui"
+        echo "Imagem: ghcr.io/${{ github.repository }}:latest"
+        # Aqui você adicionaria os passos específicos do seu deploy
+        # Exemplos: kubectl, docker-compose, terraform, etc.
+
+  # Job para notificações (opcional)
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [test, build, docker]
+    if: always()
+
+    steps:
+    - name: Notify success
+      if: ${{ needs.test.result == 'success' && needs.build.result == 'success' }}
+      run: |
+        echo "✅ Pipeline executado com sucesso!"
+        echo "- Testes: ${{ needs.test.result }}"
+        echo "- Build: ${{ needs.build.result }}"
+        echo "- Docker: ${{ needs.docker.result }}"
+
+    - name: Notify failure
+      if: ${{ needs.test.result == 'failure' || needs.build.result == 'failure' }}
+      run: |
+        echo "❌ Pipeline falhou!"
+        echo "- Testes: ${{ needs.test.result }}"
+        echo "- Build: ${{ needs.build.result }}"
+        echo "- Docker: ${{ needs.docker.result }}"

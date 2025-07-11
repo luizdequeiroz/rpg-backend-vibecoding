@@ -1,0 +1,23 @@
+# Dockerfile para desenvolvimento
+FROM golang:1.24-alpine AS development
+
+# Instalar ferramentas de desenvolvimento
+RUN apk add --no-cache git curl make bash
+
+# Definir diretório de trabalho
+WORKDIR /app
+
+# Copiar arquivos de dependências
+COPY go.mod go.sum ./
+
+# Baixar dependências
+RUN go mod download
+
+# Copiar código fonte
+COPY . .
+
+# Expor porta
+EXPOSE 8080
+
+# Comando padrão (pode ser sobrescrito no docker-compose)
+CMD ["go", "run", "cmd/api/main.go"]

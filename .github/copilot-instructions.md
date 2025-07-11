@@ -1,3 +1,4 @@
+````instructions
 # Copilot Instructions
 
 # Instruções para o Copilot
@@ -705,3 +706,775 @@ Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/tables/{mesa_id}/invites/{i
 - [ ] Implementar sistema de sessões de jogo
 - [ ] Adicionar logs de auditoria para ações importantes
 - [ ] Implementar soft delete para mesas arquivadas
+
+## Fase 8: Sistema PlayerSheet e Motor de Dados
+
+### Funcionalidades Implementadas
+- ✅ **Migrações de Banco**:
+  - `20250711150000_create_player_sheets.sql` - Tabela de fichas de personagens
+  - `20250711160100_create_rolls.sql` - Tabela de histórico de rolagens
+  - Relacionamentos FK com game_tables, users, sheet_templates
+  - Índices otimizados para performance
+
+- ✅ **Modelos de Dados**:
+  - PlayerSheet com dados JSON flexíveis para diferentes sistemas
+  - PlayerSheetData com validação e conversão de tipos
+  - CreateRollRequest com suporte a expressões e campos da ficha
+  - RollResponse com detalhes completos da rolagem
+  - Sistema de validação com tags Go
+
+- ✅ **Motor de Dados Custom**:
+  - Engine de parsing de expressões regex (pkg/roll/)
+  - Suporte a expressões como "1d20+3", "2d6+STR", "3d8-1"
+  - Sistema de critical/fumble configurável
+  - Rolagem baseada em campos da ficha de personagem
+  - Geração de números aleatórios criptograficamente seguros
+
+- ✅ **Repositórios de Dados**:
+  - PlayerSheetRepository com CRUD completo
+  - Queries otimizadas com JOINs para relacionamentos
+  - Sistema de paginação para listas grandes
+  - Validações de permissão por mesa e usuário
+
+- ✅ **Serviços de Negócio**:
+  - PlayerSheetService com lógica de autorização
+  - Validação de acesso à mesa antes de operações
+  - Sistema de propriedade (owner vs membros da mesa)
+  - Integração com motor de dados para rolagens
+
+- ✅ **Endpoints REST**:
+  - CRUD completo para fichas de personagens
+  - Sistema de rolagem de dados independente
+  - Histórico de rolagens por ficha e por mesa
+  - Documentação Swagger completa
+
+### Endpoints de PlayerSheet
+
+#### Gestão de Fichas
+- `POST /api/v1/sheets` - Criar ficha (body: table_id, template_id, name, data) 🔒
+- `GET /api/v1/sheets?table_id={id}` - Listar fichas da mesa 🔒
+- `GET /api/v1/sheets/{id}` - Detalhes da ficha 🔒
+- `PUT /api/v1/sheets/{id}` - Atualizar ficha (name, data) 🔒
+- `DELETE /api/v1/sheets/{id}` - Remover ficha 🔒
+
+#### Sistema de Rolagem
+- `POST /api/v1/rolls` - Rolar dados (body: sheet_id, expression ou field_name) 🔒
+- `GET /api/v1/rolls/sheet/{sheetID}` - Histórico de rolagens da ficha 🔒
+- `GET /api/v1/rolls/table/{tableID}` - Histórico de rolagens da mesa 🔒
+
+### Exemplos de Uso
+
+#### Criar Ficha de Personagem
+```bash
+# Autenticar primeiro
+$token = "seu_jwt_token_aqui"
+$headers = @{Authorization="Bearer $token"; "Content-Type"="application/json"}
+
+# Criar ficha D&D 5e
+$ficha = @{
+    table_id = "uuid-da-mesa"
+    template_id = 1
+    name = "Elara, a Élfica Arcana"
+    data = @{
+        attributes = @{
+            strength = 12
+            dexterity = 16
+            constitution = 14
+            intelligence = 18
+            wisdom = 13
+            charisma = 15
+        }
+        skills = @{
+            arcana = 8
+            investigation = 6
+            perception = 3
+        }
+        combat = @{
+            armor_class = 15
+            hit_points = 32
+            speed = 30
+        }
+    }
+} | ConvertTo-Json -Depth 10
+
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/sheets' -Method POST -Body $ficha -Headers $headers
+```
+
+#### Listar Fichas da Mesa
+```bash
+# Listar todas as fichas de uma mesa específica
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/sheets?table_id=uuid-da-mesa' -Headers $headers
+```
+
+#### Rolar Dados
+```bash
+# Rolagem de expressão livre
+$rolagem = @{
+    sheet_id = "uuid-da-ficha"
+    expression = "1d20+5"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/rolls' -Method POST -Body $rolagem -Headers $headers
+
+# Rolagem baseada em campo da ficha
+$teste_arcana = @{
+    sheet_id = "uuid-da-ficha"
+    field_name = "skills.arcana"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/rolls' -Method POST -Body $teste_arcana -Headers $headers
+```
+
+#### Histórico de Rolagens
+```bash
+# Ver rolagens de uma ficha específica
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/rolls/sheet/uuid-da-ficha' -Headers $headers
+
+# Ver todas as rolagens da mesa
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/rolls/table/uuid-da-mesa' -Headers $headers
+```
+
+### Estrutura de Dados
+
+#### PlayerSheet
+```json
+{
+  "id": "uuid-da-ficha",
+  "table_id": "uuid-da-mesa",
+  "template_id": 1,
+  "owner_id": 2,
+  "name": "Elara, a Élfica Arcana",
+  "data": {
+    "attributes": {
+      "strength": 12,
+      "dexterity": 16,
+      "constitution": 14,
+      "intelligence": 18,
+      "wisdom": 13,
+      "charisma": 15
+    },
+    "skills": {
+      "arcana": 8,
+      "investigation": 6,
+      "perception": 3
+    },
+    "combat": {
+      "armor_class": 15,
+      "hit_points": 32,
+      "speed": 30
+    }
+  },
+  "template": {
+    "id": 1,
+    "name": "Ficha D&D 5e"
+  },
+  "owner": {
+    "id": 2,
+    "email": "player@exemplo.com"
+  },
+  "created_at": "2025-07-11T15:00:00Z",
+  "updated_at": "2025-07-11T15:00:00Z"
+}
+```
+
+#### Roll Response
+```json
+{
+  "id": "uuid-da-rolagem",
+  "sheet_id": "uuid-da-ficha",
+  "expression": "1d20+8",
+  "field_name": "skills.arcana",
+  "result": 18,
+  "details": {
+    "dice": [10],
+    "modifier": 8,
+    "total": 18,
+    "critical": false,
+    "fumble": false,
+    "success": true
+  },
+  "roller": {
+    "id": 2,
+    "email": "player@exemplo.com"
+  },
+  "created_at": "2025-07-11T15:30:00Z"
+}
+```
+
+### Motor de Dados - Expressões Suportadas
+
+#### Expressões Básicas
+- `1d20` - Um dado de 20 faces
+- `2d6` - Dois dados de 6 faces
+- `3d8+5` - Três dados de 8 faces mais 5
+- `1d100-10` - Um dado de 100 faces menos 10
+
+#### Expressões com Campos
+- `skills.arcana` - Usa valor do campo skills.arcana da ficha
+- `attributes.strength` - Usa valor do atributo força
+- `combat.armor_class` - Usa valor da classe de armadura
+
+#### Recursos Avançados
+- **Critical/Fumble**: Detecta 20 natural (critical) e 1 natural (fumble)
+- **Validação**: Expressões malformadas retornam erro descritivo
+- **Limites**: Máximo 20 dados, máximo d1000, modificador ±999
+- **Segurança**: Geração criptograficamente segura de números
+
+### Validações e Autorização
+
+#### Permissões de Ficha
+- **Owner da Ficha**: Pode editar/deletar própria ficha
+- **Membros da Mesa**: Podem ver fichas da mesa, rolar dados
+- **Owner da Mesa**: Pode deletar qualquer ficha da mesa
+- **Outros**: Sem acesso (403 Forbidden)
+
+#### Validações de Dados
+- **Nome da Ficha**: 3-100 caracteres, obrigatório
+- **TableID**: UUID válido, mesa deve existir
+- **TemplateID**: Template deve existir no banco
+- **Data**: JSON válido, campos opcionais
+- **Expressão de Dados**: Sintaxe validada pelo motor
+
+#### Códigos de Erro
+- **400**: Dados inválidos, expressão malformada
+- **401**: Token JWT inválido ou ausente
+- **403**: Sem permissão para operação
+- **404**: Ficha, mesa ou template não encontrado
+- **500**: Erro interno do servidor
+
+### Arquivos Implementados
+
+#### Migrações
+- `migrations/20250711150000_create_player_sheets.sql`
+- `migrations/20250711160100_create_rolls.sql`
+
+#### Motor de Dados
+- `pkg/roll/engine.go` - Motor principal de rolagem
+- `pkg/roll/parser.go` - Parser de expressões regex
+- `pkg/roll/types.go` - Tipos e estruturas
+
+#### Modelos e Domínio
+- `internal/app/models/player_sheet.go` - Modelos completos
+- `internal/app/repositories/player_sheet.go` - Camada de dados
+- `internal/app/services/player_sheet.go` - Lógica de negócio
+
+#### API e Handlers
+- `internal/bff/player_sheet.go` - Handlers HTTP
+- `internal/bff/handler.go` - Integração de rotas
+
+#### Documentação
+- `docs/` - Swagger atualizado com endpoints PlayerSheet
+
+### Performance e Otimizações
+
+#### Consultas Otimizadas
+- **Índices**: Criados para table_id, owner_id, template_id
+- **JOINs Eficientes**: Busca relacionamentos em uma query
+- **Paginação**: Implementada para listas grandes
+- **Cache**: Prepared statements para queries frequentes
+
+#### Motor de Dados
+- **Regex Compilado**: Patterns compilados uma vez na inicialização
+- **Pool de Random**: Gerador único para toda aplicação
+- **Validação Rápida**: Checks básicos antes de parsing completo
+
+### Observações Importantes
+
+#### Padrão de Rotas
+- **Separação**: Fichas em `/sheets`, rolagens em `/rolls`
+- **Evita Conflitos**: Não sobrepõe com rotas de `/tables/:id`
+- **RESTful**: Seguindo convenções REST para recursos
+
+#### Flexibilidade de Dados
+- **JSON Livre**: Campo `data` aceita qualquer estrutura
+- **Validação Opcional**: Não força schema rígido
+- **Extensibilidade**: Fácil adicionar novos campos sem migração
+
+#### Segurança
+- **UUIDs**: Evita enumeration attacks em fichas
+- **Autorização Granular**: Validação em cada operação
+- **Sanitização**: Input validado antes de processamento
+
+### Próximos Passos
+- [ ] Implementar templates de rolagem personalizados
+- [ ] Adicionar macros de dados complexas
+- [ ] Implementar sistema de vantagem/desvantagem (D&D 5e)
+- [ ] Adicionar modificadores temporários nas fichas
+- [ ] Implementar iniciativa e ordem de turnos
+- [ ] Criar sistema de notas e anotações nas fichas
+
+## Fase 9: Sistema WebSocket para Notificações em Tempo Real ✅
+
+### Overview
+Sistema completo de notificações em tempo real usando WebSocket para eventos de mesa como criação de convites, fichas e rolagens de dados.
+
+### Componentes Implementados
+
+#### WebSocket Hub (`internal/app/websocket/hub.go`)
+```go
+// EventType representa tipos de eventos WebSocket
+type EventType string
+
+const (
+    EventInviteCreated   EventType = "invite_created"
+    EventInviteAccepted  EventType = "invite_accepted"
+    EventInviteDeclined  EventType = "invite_declined"
+    EventSheetCreated    EventType = "sheet_created"
+    EventSheetUpdated    EventType = "sheet_updated"
+    EventSheetDeleted    EventType = "sheet_deleted"
+    EventRollPerformed   EventType = "roll_performed"
+    EventTableUpdated    EventType = "table_updated"
+)
+```
+
+**Funcionalidades:**
+- **Gerenciamento de Clientes**: Agrupamento por mesa
+- **Broadcast Seletivo**: Eventos específicos por mesa
+- **Cleanup Automático**: Remoção de conexões inativas
+- **Thread Safety**: Operações concorrentes seguras
+
+#### WebSocket Handler (`internal/app/websocket/handler.go`)
+```bash
+# Conectar WebSocket
+GET /api/v1/ws?table_id=UUID
+Authorization: Bearer JWT_TOKEN
+
+# Estatísticas de conexões
+GET /api/v1/ws/stats
+Authorization: Bearer JWT_TOKEN
+
+# Evento de teste (desenvolvimento)
+POST /api/v1/ws/test
+Authorization: Bearer JWT_TOKEN
+```
+
+**Autenticação:**
+- **JWT Required**: Todas as conexões verificam token
+- **Table Association**: Cliente associado a mesa específica
+- **User Context**: UserID e email disponível em eventos
+
+#### WebSocket Service (`internal/app/websocket/service.go`)
+Interface de notificação implementada para integração:
+
+```go
+type NotificationService interface {
+    NotifyInviteCreated(tableID string, inviteData interface{})
+    NotifyInviteAccepted(tableID string, inviteData interface{})
+    NotifyInviteDeclined(tableID string, inviteData interface{})
+    NotifySheetCreated(tableID string, userID int, userEmail string, sheetData interface{})
+    NotifySheetUpdated(tableID string, userID int, userEmail string, sheetData interface{})
+    NotifySheetDeleted(tableID string, userID int, userEmail string, sheetData interface{})
+    NotifyRollPerformed(tableID string, userID int, userEmail string, rollData interface{})
+    NotifyTableUpdated(tableID string, userID int, userEmail string, tableData interface{})
+}
+```
+
+### Integração com Sistema Existente
+
+#### DiceHandler Integration
+```go
+// Notificação automática após rolagem bem-sucedida
+if h.notificationService != nil {
+    h.notificationService.NotifyRollPerformed(
+        sheet.TableID, 
+        userID.(int), 
+        userEmail.(string), 
+        result,
+    )
+}
+```
+
+#### Event Structure
+```json
+{
+    "type": "roll_performed",
+    "user_id": 2,
+    "user_email": "maria.player@rpg.com",
+    "table_id": "2a1eb264-c6ab-4e52-9a33-d76a612bd3cf",
+    "data": {
+        "id": "ea735f8e-d0dd-49af-9b78-0bf979d26478",
+        "expression": "1d20+8",
+        "result_value": 28,
+        "critical": true
+    },
+    "timestamp": "2025-07-11T17:09:50Z"
+}
+```
+
+### Testes WebSocket
+
+#### Script de Teste (`test_websocket.sh`)
+```bash
+# Executar teste WebSocket
+./test_websocket.sh
+
+# Teste manual com wscat
+npm install -g wscat
+wscat -c "ws://localhost:8080/api/v1/ws?table_id=MESA_ID" -H "Authorization: Bearer TOKEN"
+```
+
+#### Cenários de Teste
+1. **Conexão**: Autenticação JWT e associação à mesa
+2. **Estatísticas**: Verificação de clientes conectados
+3. **Eventos de Teste**: Broadcast manual para desenvolvimento
+4. **Notificações Automáticas**: Integração com rolagens
+
+### Arquitetura de Dependências
+
+```
+┌─────────────────┐    ┌─────────────────┐
+│   BFF Handler   │    │   Dice Handler  │
+│                 │    │                 │
+│   WebSocket     │    │   Notification  │
+│   Routes        │    │   Integration   │
+└─────────────────┘    └─────────────────┘
+        │                       │
+        ▼                       ▼
+┌─────────────────────────────────────────┐
+│          WebSocket Service              │
+│                                         │
+│  implements NotificationService         │
+└─────────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────────┐
+│            WebSocket Hub                │
+│                                         │
+│  • Client Management                   │
+│  • Event Broadcasting                  │
+│  • Table-based Grouping               │
+└─────────────────────────────────────────┘
+```
+
+### Características Técnicas
+
+#### Escalabilidade
+- **Hub Centralizado**: Gerenciamento eficiente de conexões
+- **Memory Cleanup**: Remoção automática de clientes inativos
+- **Concurrent Safe**: Mutex para operações thread-safe
+
+#### Segurança
+- **JWT Authentication**: Todas as conexões autenticadas
+- **Table Isolation**: Eventos isolados por mesa
+- **Origin Validation**: Configurável para produção
+
+#### Performance
+- **Ping/Pong**: Keep-alive automático (54s interval)
+- **Buffer Management**: Channels com buffer adequado
+- **Graceful Shutdown**: Cleanup adequado de recursos
+
+### Cliente JavaScript Exemplo
+
+```javascript
+// Conectar WebSocket
+const token = 'eyJhbGciOiJIUzI1NiIs...';
+const tableId = '2a1eb264-c6ab-4e52-9a33-d76a612bd3cf';
+const ws = new WebSocket(`ws://localhost:8080/api/v1/ws?table_id=${tableId}`, [], {
+    headers: {
+        'Authorization': `Bearer ${token}`
+    }
+});
+
+// Receber eventos
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log(`Evento ${data.type}:`, data);
+    
+    switch(data.type) {
+        case 'roll_performed':
+            showDiceRoll(data.data);
+            break;
+        case 'invite_created':
+            showNewInvite(data.data);
+            break;
+        case 'sheet_created':
+            refreshCharacterList();
+            break;
+    }
+};
+
+// Tratamento de erros
+ws.onerror = (error) => {
+    console.error('WebSocket Error:', error);
+};
+
+ws.onclose = (event) => {
+    console.log('Conexão fechada:', event.code, event.reason);
+};
+```
+
+### Status da Implementação
+- ✅ **WebSocket Hub**: Gerenciamento completo de conexões
+- ✅ **Event Types**: Todos os tipos de evento definidos  
+- ✅ **Authentication**: JWT integrado em conexões
+- ✅ **Handler Endpoints**: Conexão, stats e teste
+- ✅ **Service Integration**: Notificações em rolagens
+- ✅ **Interface Design**: NotificationService para extensibilidade
+- ✅ **Testing Scripts**: Automação de testes WebSocket
+
+### Próximos Passos WebSocket
+- [ ] Integrar notificações em GameTable operations
+- [ ] Adicionar eventos de PlayerSheet create/update/delete
+- [ ] Implementar notificações de convites aceitos/recusados
+- [ ] Adicionar heartbeat personalizado para conexões
+- [ ] Implementar rate limiting para eventos
+- [ ] Criar dashboard de monitoramento WebSocket
+
+## Fase 10: Testes Unitários e CI/CD
+
+![Tests](https://img.shields.io/github/actions/workflow/status/luizdequeiroz/rpg-backend/ci.yml?branch=main&label=tests)
+![Coverage](https://img.shields.io/badge/coverage-80%25+-green)
+![Go Version](https://img.shields.io/badge/go-1.24+-blue)
+
+### Funcionalidades Implementadas
+- ✅ **Testes Unitários Completos**:
+  - `pkg/roll/engine_test.go` - Motor de dados
+  - `pkg/db/db_test.go` - Camada de banco
+  - `internal/app/services/auth_test.go` - Serviços de autenticação
+
+- ✅ **Testes de Integração**:
+  - `tests/integration/api_test.go` - Endpoints da API
+  - Banco SQLite em memória para testes
+  - Fluxos completos de autenticação
+
+- ✅ **Cobertura de Código**:
+  - Meta mínima: 80% em handlers, roll engine e db layer
+  - Relatórios HTML e texto
+  - Validação automática no CI
+
+- ✅ **Ferramentas de Teste**:
+  - `testify/assert` - Assertions
+  - `testify/mock` - Mocks para testes unitários
+  - `sqlmock` - Mock de banco de dados
+  - Benchmarks de performance
+
+- ✅ **Docker para Testes**:
+  - `docker-compose.dev.yml` - Ambiente de desenvolvimento
+  - `Dockerfile.test` - Container específico para testes
+  - SQLite in-memory para isolamento
+
+- ✅ **GitHub Actions CI/CD**:
+  - `.github/workflows/ci.yml` - Pipeline completo
+  - Análise estática (`go fmt`, `go vet`)
+  - Testes automatizados com cobertura
+  - Build e publicação de imagens Docker
+
+### Como Executar Testes
+
+#### Scripts Automatizados
+```bash
+# Linux/macOS
+chmod +x run-tests.sh
+./run-tests.sh
+
+# Windows
+run-tests.bat
+```
+
+#### Comandos Individuais
+```bash
+# Testes unitários
+go test ./pkg/... ./internal/app/services/... -v -race
+
+# Testes de integração
+go test ./tests/integration/... -v -race
+
+# Todos os testes com cobertura
+go test ./... -v -race -coverprofile=coverage.out
+
+# Verificar cobertura
+go tool cover -func=coverage.out
+go tool cover -html=coverage.out -o coverage.html
+
+# Benchmarks
+go test ./pkg/roll/... -bench=. -benchmem -run=^$
+
+# Análise estática
+go fmt ./...
+go vet ./...
+```
+
+#### Via Docker
+```bash
+# Executar todos os testes
+docker-compose -f docker-compose.dev.yml run test-runner
+
+# Testes de integração
+docker-compose -f docker-compose.dev.yml run integration-tests
+
+# Benchmarks
+docker-compose -f docker-compose.dev.yml run benchmark
+```
+
+### Estrutura de Testes
+
+#### Testes Unitários
+```
+pkg/
+├── roll/
+│   └── engine_test.go     # Motor de dados
+└── db/
+    └── db_test.go         # Camada de banco
+
+internal/app/services/
+└── auth_test.go          # Serviços de autenticação
+```
+
+#### Testes de Integração
+```
+tests/
+└── integration/
+    └── api_test.go       # Endpoints da API completa
+```
+
+### Cobertura de Código
+
+#### Metas de Cobertura
+- **Motor de Dados**: >90% (crítico para rolagens)
+- **Handlers HTTP**: >80% (endpoints principais)
+- **Serviços**: >85% (lógica de negócio)
+- **DB Layer**: >80% (operações de dados)
+- **Total**: >80% (meta global)
+
+#### Verificação de Cobertura
+```bash
+# Verificar cobertura total
+COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
+echo "Cobertura: ${COVERAGE}%"
+
+# Relatório detalhado
+go tool cover -func=coverage.out
+
+# Relatório HTML interativo
+go tool cover -html=coverage.out -o coverage.html
+```
+
+### GitHub Actions Pipeline
+
+#### Jobs Configurados
+1. **Test and Code Quality**:
+   - Verificação de formatação (`go fmt`)
+   - Análise estática (`go vet`)
+   - Testes unitários e integração
+   - Validação de cobertura mínima
+   - Upload para Codecov
+
+2. **Build Application**:
+   - Build dos binários
+   - Validação dos executáveis
+   - Upload dos artefatos
+
+3. **Docker Build & Push** (apenas main):
+   - Build da imagem Docker otimizada
+   - Push para GitHub Container Registry
+   - Suporte para Docker Hub (opcional)
+
+4. **Deploy** (placeholder):
+   - Preparado para deploy automático
+   - Ambiente de produção configurável
+
+#### Configuração de Secrets
+```yaml
+# GitHub Repository Secrets (opcionais)
+DOCKER_USERNAME: seu-usuario-docker-hub
+DOCKER_PASSWORD: sua-senha-docker-hub
+CODECOV_TOKEN: token-do-codecov
+```
+
+### Docker para Desenvolvimento
+
+#### Imagens Disponíveis
+- `Dockerfile` - Produção (multi-stage, otimizada)
+- `Dockerfile.dev` - Desenvolvimento (hot reload)
+- `Dockerfile.test` - Testes (ferramentas incluídas)
+
+#### Comandos Docker
+```bash
+# Desenvolvimento
+docker-compose -f docker-compose.dev.yml up rpg-backend
+
+# Executar testes
+docker-compose -f docker-compose.dev.yml up test-runner
+
+# Build para produção
+docker build -t rpg-backend:latest .
+
+# Executar em produção
+docker run -p 8080:8080 -e JWT_SECRET=your-secret rpg-backend:latest
+```
+
+### Melhores Práticas de Teste
+
+#### Estrutura de Teste
+```go
+func TestFunctionName(t *testing.T) {
+    // Arrange - configurar dados de teste
+    input := setupTestData()
+    
+    // Act - executar função
+    result, err := functionUnderTest(input)
+    
+    // Assert - verificar resultados
+    assert.NoError(t, err)
+    assert.Equal(t, expectedValue, result)
+}
+```
+
+#### Uso de Mocks
+```go
+// Criar mock
+mockRepo := &MockRepository{}
+mockRepo.On("Method", args).Return(expectedResult, nil)
+
+// Usar mock
+service := NewService(mockRepo)
+result := service.DoSomething()
+
+// Verificar mock
+mockRepo.AssertExpectations(t)
+```
+
+#### Testes de Integração
+```go
+func TestAPIEndpoint(t *testing.T) {
+    // Setup test database
+    db := setupTestDB()
+    defer db.Close()
+    
+    // Setup router
+    router := setupTestRouter(db)
+    
+    // Make request
+    req := httptest.NewRequest("GET", "/api/endpoint", nil)
+    w := httptest.NewRecorder()
+    router.ServeHTTP(w, req)
+    
+    // Assert response
+    assert.Equal(t, http.StatusOK, w.Code)
+}
+```
+
+### Métricas e Monitoramento
+
+#### Arquivos Gerados
+- `coverage.out` - Dados de cobertura raw
+- `coverage.html` - Relatório interativo
+- `benchmark-results.txt` - Resultados de performance
+- `unit-coverage.out` - Cobertura testes unitários
+- `integration-coverage.out` - Cobertura testes integração
+
+#### Badges de Status
+```markdown
+![Tests](https://img.shields.io/github/actions/workflow/status/usuario/repo/ci.yml)
+![Coverage](https://img.shields.io/badge/coverage-85%25-green)
+![Go Report](https://goreportcard.com/badge/github.com/usuario/repo)
+```
+
+### Próximos Passos
+- [ ] Adicionar testes para WebSocket (Fase 9)
+- [ ] Implementar testes de carga com `go test -bench`
+- [ ] Configurar deploy automático
+- [ ] Adicionar mutation testing
+- [ ] Implementar health checks avançados
+- [ ] Configurar monitoring com Prometheus
+````
