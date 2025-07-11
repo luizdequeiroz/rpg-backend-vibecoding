@@ -2,8 +2,8 @@ goos: windows
 goarch: amd64
 pkg: github.com/luizdequeiroz/rpg-backend/pkg/roll
 cpu: AMD Ryzen 5 3600 6-Core Processor              
-BenchmarkParseExpression-12    	  192118	      6202 ns/op	    7884 B/op	      84 allocs/op
-BenchmarkRoll-12               	  196864	      6424 ns/op	    7933 B/op	      86 allocs/op
-BenchmarkRollFromField-12      	  128638	      9263 ns/op	    9105 B/op	     109 allocs/op
+BenchmarkParseExpression-12    	  195855	      6295 ns/op	    7884 B/op	      84 allocs/op
+BenchmarkRoll-12               	  181502	      6565 ns/op	    7933 B/op	      86 allocs/op
+BenchmarkRollFromField-12      	  123268	      9518 ns/op	    9105 B/op	     109 allocs/op
 PASS
-ok  	github.com/luizdequeiroz/rpg-backend/pkg/roll	4.252s
+ok  	github.com/luizdequeiroz/rpg-backend/pkg/roll	4.204s
