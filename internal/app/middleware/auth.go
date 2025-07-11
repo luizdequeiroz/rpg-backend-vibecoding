@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -69,6 +70,9 @@ func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 		c.Set("user_id", userID)
 		c.Set("user_email", email)
 
+		// Debug temporário
+		fmt.Printf("DEBUG: Middleware definiu user_id=%d, email=%s\n", userID, email)
+
 		c.Next()
 	}
 }
@@ -77,24 +81,29 @@ func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 func GetUserFromContext(c *gin.Context) (userID int, email string, exists bool) {
 	userIDValue, exists := c.Get("user_id")
 	if !exists {
+		fmt.Printf("DEBUG: user_id não encontrado no contexto\n")
 		return 0, "", false
 	}
 
 	emailValue, exists := c.Get("user_email")
 	if !exists {
+		fmt.Printf("DEBUG: user_email não encontrado no contexto\n")
 		return 0, "", false
 	}
 
 	userID, ok := userIDValue.(int)
 	if !ok {
+		fmt.Printf("DEBUG: user_id não é int: %T = %v\n", userIDValue, userIDValue)
 		return 0, "", false
 	}
 
 	email, ok = emailValue.(string)
 	if !ok {
+		fmt.Printf("DEBUG: user_email não é string: %T = %v\n", emailValue, emailValue)
 		return 0, "", false
 	}
 
+	fmt.Printf("DEBUG: GetUserFromContext retornou user_id=%d, email=%s\n", userID, email)
 	return userID, email, true
 }
 
@@ -129,4 +138,8 @@ func OptionalAuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func init() {
+	fmt.Println("Middleware inicializado")
 }

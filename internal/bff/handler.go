@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/luizdequeiroz/rpg-backend/internal/app/middleware"
 	"github.com/luizdequeiroz/rpg-backend/internal/app/repositories"
 	"github.com/luizdequeiroz/rpg-backend/internal/app/services"
 	"github.com/luizdequeiroz/rpg-backend/pkg/db"
@@ -19,6 +20,9 @@ type Handler struct {
 	userHandler          *UserHandler
 	gameTableService     *services.GameTableService
 	gameTableHandler     *GameTableHandler
+	playerSheetService   *services.PlayerSheetService
+	playerSheetHandler   *PlayerSheetHandler
+	diceHandler          *DiceHandler
 }
 
 // NewHandler cria um novo handler BFF
@@ -37,6 +41,16 @@ func NewHandler(database *db.DB) *Handler {
 	gameTableService := services.NewGameTableService(gameTableRepo, inviteRepo)
 	gameTableHandler := NewGameTableHandler(gameTableService)
 
+	// Inicializar repositórios e serviços para PlayerSheet
+	playerSheetRepo := repositories.NewPlayerSheetRepository(database.DB)
+	rollRepo := repositories.NewRollRepository(database.DB)
+	playerSheetService := services.NewPlayerSheetService(playerSheetRepo, rollRepo, gameTableRepo)
+	playerSheetHandler := NewPlayerSheetHandler(playerSheetService)
+
+	// Inicializar serviço e handler para Dice
+	diceService := services.NewDiceService(rollRepo)
+	diceHandler := NewDiceHandler(diceService, playerSheetService)
+
 	return &Handler{
 		db:                   database,
 		authService:          authService,
@@ -46,6 +60,9 @@ func NewHandler(database *db.DB) *Handler {
 		userHandler:          userHandler,
 		gameTableService:     gameTableService,
 		gameTableHandler:     gameTableHandler,
+		playerSheetService:   playerSheetService,
+		playerSheetHandler:   playerSheetHandler,
+		diceHandler:          diceHandler,
 	}
 }
 
@@ -62,6 +79,9 @@ func (h *Handler) SetupRoutes(router *gin.RouterGroup) {
 
 	// Rotas de mesas de jogo
 	h.gameTableHandler.SetupGameTableRoutes(router, h.authService)
+
+	// Rotas de fichas de personagens e rolagens
+	h.setupPlayerSheetRoutes(router)
 
 	// Rotas de campanhas
 	campaigns := router.Group("/campaigns")
@@ -92,6 +112,9 @@ func (h *Handler) SetupRoutes(router *gin.RouterGroup) {
 		sessions.PUT("/:id", h.updateSession)
 		sessions.DELETE("/:id", h.deleteSession)
 	}
+
+	// Rotas de dados/rolagens
+	h.diceHandler.SetupDiceRoutes(router, h.authService)
 }
 
 // Handlers temporários - serão implementados com a lógica de negócio real
@@ -246,4 +269,29 @@ func (h *Handler) deleteSession(c *gin.Context) {
 		"message": "Sessão removida",
 		"id":      id,
 	})
+}
+
+// setupPlayerSheetRoutes configura rotas de fichas de personagens
+func (h *Handler) setupPlayerSheetRoutes(router *gin.RouterGroup) {
+	authMiddleware := middleware.AuthMiddleware(h.authService)
+	
+	// Rotas de fichas de personagens
+	sheets := router.Group("/sheets")
+	{
+		// CRUD de fichas por mesa - aplicando middleware diretamente
+		sheets.POST("/", authMiddleware, h.playerSheetHandler.CreateSheet)
+		sheets.GET("/", authMiddleware, h.playerSheetHandler.GetSheetsByTable)
+		sheets.GET("/:id", authMiddleware, h.playerSheetHandler.GetSheet)
+		sheets.PUT("/:id", authMiddleware, h.playerSheetHandler.UpdateSheet)
+		sheets.DELETE("/:id", authMiddleware, h.playerSheetHandler.DeleteSheet)
+	}
+	
+	// Rotas de rolagem de dados
+	rolls := router.Group("/rolls")
+	{
+		// Rolagens por ficha - aplicando middleware diretamente
+		rolls.POST("/", authMiddleware, h.playerSheetHandler.RollDice)
+		rolls.GET("/sheet/:sheetID", authMiddleware, h.playerSheetHandler.GetRollsBySheet)
+		rolls.GET("/table/:tableID", authMiddleware, h.playerSheetHandler.GetRollsByTable)
+	}
 }

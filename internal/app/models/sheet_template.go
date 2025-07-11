@@ -8,14 +8,12 @@ import (
 // BaseTemplateFields contém os campos comuns para todos os tipos de template
 type BaseTemplateFields struct {
 	Name        string `json:"name" db:"name" validate:"required,min=3,max=100" example:"Ficha D&D 5e"`
-	System      string `json:"system" db:"system" validate:"required,min=2,max=50" example:"D&D 5e"`
 	Description string `json:"description,omitempty" db:"description" validate:"max=500" example:"Template completo para personagens de D&D 5ª edição"`
 }
 
 // BaseTemplateFieldsOptional contém os campos comuns para atualizações (com ponteiros)
 type BaseTemplateFieldsOptional struct {
 	Name        *string `json:"name,omitempty" validate:"omitempty,min=3,max=100" example:"Ficha D&D 5e Atualizada"`
-	System      *string `json:"system,omitempty" validate:"omitempty,min=2,max=50" example:"D&D 5e"`
 	Description *string `json:"description,omitempty" validate:"omitempty,max=500" example:"Template atualizado para D&D 5ª edição"`
 }
 
@@ -94,7 +92,6 @@ func (st *SheetTemplate) ToResponse() SheetTemplateResponse {
 		},
 		BaseTemplateFields: BaseTemplateFields{
 			Name:        st.Name,
-			System:      st.System,
 			Description: st.Description,
 		},
 		DefinitionField: DefinitionField{

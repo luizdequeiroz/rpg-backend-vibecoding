@@ -36,7 +36,7 @@ func (r *SheetTemplateRepository) GetAll(page, limit int) ([]models.SheetTemplat
 	// Buscar templates com paginação
 	offset := (page - 1) * limit
 	query := `
-		SELECT id, name, system, definition, description, is_active, created_at, updated_at 
+		SELECT id, name, definition, description, is_active, created_at, updated_at 
 		FROM sheet_templates 
 		WHERE is_active = true 
 		ORDER BY created_at DESC 
@@ -55,7 +55,7 @@ func (r *SheetTemplateRepository) GetAll(page, limit int) ([]models.SheetTemplat
 func (r *SheetTemplateRepository) GetByID(id int) (*models.SheetTemplate, error) {
 	var template models.SheetTemplate
 	query := `
-		SELECT id, name, system, definition, description, is_active, created_at, updated_at 
+		SELECT id, name, definition, description, is_active, created_at, updated_at 
 		FROM sheet_templates 
 		WHERE id = ? AND is_active = true
 	`
@@ -75,8 +75,8 @@ func (r *SheetTemplateRepository) GetByID(id int) (*models.SheetTemplate, error)
 func (r *SheetTemplateRepository) Create(req models.CreateSheetTemplateRequest) (*models.SheetTemplate, error) {
 	now := time.Now()
 	query := `
-		INSERT INTO sheet_templates (name, system, definition, description, is_active, created_at, updated_at)
-		VALUES (?, ?, ?, ?, true, ?, ?)
+		INSERT INTO sheet_templates (name, definition, description, is_active, created_at, updated_at)
+		VALUES (?, ?, ?, true, ?, ?)
 	`
 
 	// Converter definition para string JSON
@@ -85,7 +85,7 @@ func (r *SheetTemplateRepository) Create(req models.CreateSheetTemplateRequest) 
 		return nil, fmt.Errorf("erro ao converter definition para JSON: %w", err)
 	}
 
-	result, err := r.db.Exec(query, req.Name, req.System, string(definitionBytes), req.Description, now, now)
+	result, err := r.db.Exec(query, req.Name, string(definitionBytes), req.Description, now, now)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao criar template: %w", err)
 	}
@@ -117,11 +117,6 @@ func (r *SheetTemplateRepository) Update(id int, req models.UpdateSheetTemplateR
 		name = *req.Name
 	}
 
-	system := existing.System
-	if req.System != nil {
-		system = *req.System
-	}
-
 	description := existing.Description
 	if req.Description != nil {
 		description = *req.Description
@@ -139,11 +134,11 @@ func (r *SheetTemplateRepository) Update(id int, req models.UpdateSheetTemplateR
 
 	query := `
 		UPDATE sheet_templates 
-		SET name = ?, system = ?, definition = ?, description = ?, updated_at = ?
+		SET name = ?, definition = ?, description = ?, updated_at = ?
 		WHERE id = ? AND is_active = true
 	`
 
-	_, err = r.db.Exec(query, name, system, definitionJSON, description, now, id)
+	_, err = r.db.Exec(query, name, definitionJSON, description, now, id)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao atualizar template: %w", err)
 	}
@@ -171,20 +166,4 @@ func (r *SheetTemplateRepository) Delete(id int) error {
 	return nil
 }
 
-// GetBySystem busca templates por sistema
-func (r *SheetTemplateRepository) GetBySystem(system string) ([]models.SheetTemplate, error) {
-	var templates []models.SheetTemplate
-	query := `
-		SELECT id, name, system, definition, description, is_active, created_at, updated_at 
-		FROM sheet_templates 
-		WHERE system = ? AND is_active = true 
-		ORDER BY name ASC
-	`
 
-	err := r.db.Select(&templates, query, system)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao buscar templates por sistema: %w", err)
-	}
-
-	return templates, nil
-}

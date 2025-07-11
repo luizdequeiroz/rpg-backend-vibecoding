@@ -26,6 +26,58 @@ definitions:
       user:
         $ref: '#/definitions/models.User'
     type: object
+  models.CreateGameTableRequest:
+    properties:
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      system:
+        maxLength: 50
+        minLength: 2
+        type: string
+    required:
+    - name
+    - system
+    type: object
+  models.CreateInviteRequest:
+    properties:
+      invitee_email:
+        type: string
+    required:
+    - invitee_email
+    type: object
+  models.CreatePlayerSheetRequest:
+    properties:
+      data:
+        $ref: '#/definitions/models.PlayerSheetData'
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      table_id:
+        type: string
+      template_id:
+        minimum: 1
+        type: integer
+    required:
+    - name
+    - table_id
+    - template_id
+    type: object
+  models.CreateRollRequest:
+    properties:
+      expression:
+        maxLength: 200
+        type: string
+      field_name:
+        maxLength: 100
+        type: string
+      sheet_id:
+        type: string
+    required:
+    - sheet_id
+    type: object
   models.CreateSheetTemplateRequest:
     properties:
       definition:
@@ -57,6 +109,143 @@ definitions:
       message:
         example: Detalhes adicionais do erro
         type: string
+    type: object
+  models.GameTable:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      owner_id:
+        type: integer
+      system:
+        maxLength: 50
+        minLength: 2
+        type: string
+      updated_at:
+        type: string
+    required:
+    - name
+    - system
+    type: object
+  models.GameTableResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      invites:
+        items:
+          $ref: '#/definitions/models.InviteDetails'
+        type: array
+      name:
+        type: string
+      owner:
+        $ref: '#/definitions/models.UserResponse'
+      owner_id:
+        type: integer
+      system:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.InviteDetails:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      invitee:
+        $ref: '#/definitions/models.UserResponse'
+      invitee_id:
+        type: integer
+      inviter:
+        $ref: '#/definitions/models.UserResponse'
+      inviter_id:
+        type: integer
+      status:
+        type: string
+      table:
+        $ref: '#/definitions/models.GameTable'
+      table_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.PlayerSheetData:
+    additionalProperties: true
+    type: object
+  models.PlayerSheetResponse:
+    properties:
+      created_at:
+        type: string
+      data:
+        $ref: '#/definitions/models.PlayerSheetData'
+      id:
+        type: string
+      name:
+        type: string
+      owner:
+        $ref: '#/definitions/models.UserResponse'
+      owner_id:
+        type: integer
+      table_id:
+        type: string
+      template:
+        $ref: '#/definitions/models.TemplateInfo'
+      template_id:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  models.RollDetails:
+    properties:
+      critical:
+        description: Se foi crítico
+        type: boolean
+      dice:
+        description: Valores individuais dos dados
+        items:
+          type: integer
+        type: array
+      fumble:
+        description: Se foi fumble
+        type: boolean
+      modifier:
+        description: Modificador aplicado
+        type: integer
+      total:
+        description: Resultado final
+        type: integer
+    type: object
+  models.RollResponse:
+    properties:
+      created_at:
+        type: string
+      expression:
+        type: string
+      field_name:
+        type: string
+      id:
+        type: string
+      result_details:
+        $ref: '#/definitions/models.RollDetails'
+      result_value:
+        type: integer
+      sheet_id:
+        type: string
+      success:
+        type: boolean
+      table_id:
+        type: string
+      user:
+        $ref: '#/definitions/models.UserResponse'
+      user_id:
+        type: integer
     type: object
   models.SheetTemplateErrorResponse:
     properties:
@@ -140,6 +329,35 @@ definitions:
         example: ab
         type: string
     type: object
+  models.TemplateInfo:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  models.UpdateGameTableRequest:
+    properties:
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      system:
+        maxLength: 50
+        minLength: 2
+        type: string
+    type: object
+  models.UpdatePlayerSheetRequest:
+    properties:
+      data:
+        $ref: '#/definitions/models.PlayerSheetData'
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+    type: object
   models.UpdateSheetTemplateRequest:
     properties:
       definition:
@@ -183,6 +401,13 @@ definitions:
     required:
     - email
     - password
+    type: object
+  models.UserResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
     type: object
   models.UserSignupRequest:
     properties:
@@ -308,6 +533,814 @@ paths:
       summary: Registro de novo usuário
       tags:
       - auth
+  /api/v1/rolls:
+    post:
+      consumes:
+      - application/json
+      description: Executa rolagem de dados baseada em expressão ou campo da ficha
+      parameters:
+      - description: Dados da rolagem
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateRollRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.RollResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Rolar dados
+      tags:
+      - Player Sheets
+  /api/v1/rolls/sheet/{sheetID}:
+    get:
+      description: Lista histórico de rolagens de uma ficha específica
+      parameters:
+      - description: ID da ficha
+        in: path
+        name: sheetID
+        required: true
+        type: string
+      - default: 1
+        description: Página
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Listar rolagens da ficha
+      tags:
+      - Player Sheets
+  /api/v1/rolls/table/{tableID}:
+    get:
+      description: Lista histórico de rolagens de uma mesa
+      parameters:
+      - description: ID da mesa
+        in: path
+        name: tableID
+        required: true
+        type: string
+      - default: 1
+        description: Página
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Listar rolagens da mesa
+      tags:
+      - Player Sheets
+  /api/v1/sheets:
+    get:
+      description: Lista todas as fichas de personagens de uma mesa
+      parameters:
+      - description: ID da mesa
+        in: query
+        name: table_id
+        required: true
+        type: string
+      - default: 1
+        description: Página
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Listar fichas da mesa
+      tags:
+      - Player Sheets
+    post:
+      consumes:
+      - application/json
+      description: Cria nova ficha de personagem em uma mesa
+      parameters:
+      - description: Dados da ficha
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreatePlayerSheetRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.PlayerSheetResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Criar ficha de personagem
+      tags:
+      - Player Sheets
+  /api/v1/sheets/{id}:
+    delete:
+      description: Remove uma ficha de personagem
+      parameters:
+      - description: ID da ficha
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Remover ficha
+      tags:
+      - Player Sheets
+    get:
+      description: Busca ficha de personagem por ID
+      parameters:
+      - description: ID da ficha
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.PlayerSheetResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Buscar ficha
+      tags:
+      - Player Sheets
+    put:
+      consumes:
+      - application/json
+      description: Atualiza dados de uma ficha de personagem
+      parameters:
+      - description: ID da ficha
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados para atualização
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdatePlayerSheetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.PlayerSheetResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Atualizar ficha
+      tags:
+      - Player Sheets
+  /api/v1/tables:
+    get:
+      description: Lista todas as mesas onde o usuário é proprietário ou convidado
+        aceito
+      parameters:
+      - default: 1
+        description: Número da página
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de mesas
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Não autorizado
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Erro interno
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Listar mesas do usuário
+      tags:
+      - GameTables
+    post:
+      consumes:
+      - application/json
+      description: Cria uma nova mesa de jogo. O usuário autenticado se torna o proprietário.
+      parameters:
+      - description: Dados da mesa
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateGameTableRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.GameTableResponse'
+        "400":
+          description: Dados inválidos
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Não autorizado
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Erro interno
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Criar nova mesa de jogo
+      tags:
+      - GameTables
+  /api/v1/tables/{id}:
+    delete:
+      description: Remove uma mesa permanentemente. Apenas o proprietário pode remover.
+      parameters:
+      - description: ID da mesa
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Mesa removida com sucesso
+        "400":
+          description: ID inválido
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Não autorizado
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Apenas proprietário pode remover
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Mesa não encontrada
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Erro interno
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Remover mesa
+      tags:
+      - GameTables
+    get:
+      description: Retorna detalhes de uma mesa específica, incluindo convites se
+        o usuário for o proprietário
+      parameters:
+      - description: ID da mesa
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GameTableResponse'
+        "400":
+          description: ID inválido
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Não autorizado
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Acesso negado
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Mesa não encontrada
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Erro interno
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Buscar mesa por ID
+      tags:
+      - GameTables
+    put:
+      consumes:
+      - application/json
+      description: Atualiza nome e/ou sistema de uma mesa. Apenas o proprietário pode
+        atualizar.
+      parameters:
+      - description: ID da mesa
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados para atualização
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateGameTableRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GameTableResponse'
+        "400":
+          description: Dados inválidos
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Não autorizado
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Apenas proprietário pode atualizar
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Mesa não encontrada
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Erro interno
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Atualizar mesa
+      tags:
+      - GameTables
+  /api/v1/tables/{id}/invites:
+    get:
+      description: Lista todos os convites de uma mesa. Acessível pelo proprietário
+        e convidados.
+      parameters:
+      - description: ID da mesa
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de convites
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: ID inválido
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Não autorizado
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Acesso negado
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Mesa não encontrada
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Erro interno
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Listar convites da mesa
+      tags:
+      - GameTables
+    post:
+      consumes:
+      - application/json
+      description: Cria um convite para um usuário participar da mesa. Apenas o proprietário
+        pode criar convites.
+      parameters:
+      - description: ID da mesa
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Email do usuário a ser convidado
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateInviteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.InviteDetails'
+        "400":
+          description: Dados inválidos
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Não autorizado
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Apenas proprietário pode criar convites
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Mesa ou usuário não encontrado
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Convite já existe
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Erro interno
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Criar convite para mesa
+      tags:
+      - GameTables
+  /api/v1/tables/{id}/invites/{inviteId}/accept:
+    post:
+      description: Aceita um convite para participar da mesa. Apenas o convidado pode
+        aceitar.
+      parameters:
+      - description: ID da mesa
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ID do convite
+        in: path
+        name: inviteId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Convite aceito
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: ID inválido
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Não autorizado
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Apenas convidado pode aceitar
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Convite não encontrado
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Convite já respondido
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Erro interno
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Aceitar convite
+      tags:
+      - GameTables
+  /api/v1/tables/{id}/invites/{inviteId}/decline:
+    post:
+      description: Recusa um convite para participar da mesa. Apenas o convidado pode
+        recusar.
+      parameters:
+      - description: ID da mesa
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ID do convite
+        in: path
+        name: inviteId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Convite recusado
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: ID inválido
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Não autorizado
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Apenas convidado pode recusar
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Convite não encontrado
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Convite já respondido
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Erro interno
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Recusar convite
+      tags:
+      - GameTables
   /api/v1/templates:
     get:
       consumes:

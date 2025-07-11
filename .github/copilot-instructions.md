@@ -1,3 +1,4 @@
+````instructions
 # Copilot Instructions
 
 # Instruções para o Copilot
@@ -705,3 +706,300 @@ Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/tables/{mesa_id}/invites/{i
 - [ ] Implementar sistema de sessões de jogo
 - [ ] Adicionar logs de auditoria para ações importantes
 - [ ] Implementar soft delete para mesas arquivadas
+
+## Fase 8: Sistema PlayerSheet e Motor de Dados
+
+### Funcionalidades Implementadas
+- ✅ **Migrações de Banco**:
+  - `20250711150000_create_player_sheets.sql` - Tabela de fichas de personagens
+  - `20250711160100_create_rolls.sql` - Tabela de histórico de rolagens
+  - Relacionamentos FK com game_tables, users, sheet_templates
+  - Índices otimizados para performance
+
+- ✅ **Modelos de Dados**:
+  - PlayerSheet com dados JSON flexíveis para diferentes sistemas
+  - PlayerSheetData com validação e conversão de tipos
+  - CreateRollRequest com suporte a expressões e campos da ficha
+  - RollResponse com detalhes completos da rolagem
+  - Sistema de validação com tags Go
+
+- ✅ **Motor de Dados Custom**:
+  - Engine de parsing de expressões regex (pkg/roll/)
+  - Suporte a expressões como "1d20+3", "2d6+STR", "3d8-1"
+  - Sistema de critical/fumble configurável
+  - Rolagem baseada em campos da ficha de personagem
+  - Geração de números aleatórios criptograficamente seguros
+
+- ✅ **Repositórios de Dados**:
+  - PlayerSheetRepository com CRUD completo
+  - Queries otimizadas com JOINs para relacionamentos
+  - Sistema de paginação para listas grandes
+  - Validações de permissão por mesa e usuário
+
+- ✅ **Serviços de Negócio**:
+  - PlayerSheetService com lógica de autorização
+  - Validação de acesso à mesa antes de operações
+  - Sistema de propriedade (owner vs membros da mesa)
+  - Integração com motor de dados para rolagens
+
+- ✅ **Endpoints REST**:
+  - CRUD completo para fichas de personagens
+  - Sistema de rolagem de dados independente
+  - Histórico de rolagens por ficha e por mesa
+  - Documentação Swagger completa
+
+### Endpoints de PlayerSheet
+
+#### Gestão de Fichas
+- `POST /api/v1/sheets` - Criar ficha (body: table_id, template_id, name, data) 🔒
+- `GET /api/v1/sheets?table_id={id}` - Listar fichas da mesa 🔒
+- `GET /api/v1/sheets/{id}` - Detalhes da ficha 🔒
+- `PUT /api/v1/sheets/{id}` - Atualizar ficha (name, data) 🔒
+- `DELETE /api/v1/sheets/{id}` - Remover ficha 🔒
+
+#### Sistema de Rolagem
+- `POST /api/v1/rolls` - Rolar dados (body: sheet_id, expression ou field_name) 🔒
+- `GET /api/v1/rolls/sheet/{sheetID}` - Histórico de rolagens da ficha 🔒
+- `GET /api/v1/rolls/table/{tableID}` - Histórico de rolagens da mesa 🔒
+
+### Exemplos de Uso
+
+#### Criar Ficha de Personagem
+```bash
+# Autenticar primeiro
+$token = "seu_jwt_token_aqui"
+$headers = @{Authorization="Bearer $token"; "Content-Type"="application/json"}
+
+# Criar ficha D&D 5e
+$ficha = @{
+    table_id = "uuid-da-mesa"
+    template_id = 1
+    name = "Elara, a Élfica Arcana"
+    data = @{
+        attributes = @{
+            strength = 12
+            dexterity = 16
+            constitution = 14
+            intelligence = 18
+            wisdom = 13
+            charisma = 15
+        }
+        skills = @{
+            arcana = 8
+            investigation = 6
+            perception = 3
+        }
+        combat = @{
+            armor_class = 15
+            hit_points = 32
+            speed = 30
+        }
+    }
+} | ConvertTo-Json -Depth 10
+
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/sheets' -Method POST -Body $ficha -Headers $headers
+```
+
+#### Listar Fichas da Mesa
+```bash
+# Listar todas as fichas de uma mesa específica
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/sheets?table_id=uuid-da-mesa' -Headers $headers
+```
+
+#### Rolar Dados
+```bash
+# Rolagem de expressão livre
+$rolagem = @{
+    sheet_id = "uuid-da-ficha"
+    expression = "1d20+5"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/rolls' -Method POST -Body $rolagem -Headers $headers
+
+# Rolagem baseada em campo da ficha
+$teste_arcana = @{
+    sheet_id = "uuid-da-ficha"
+    field_name = "skills.arcana"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/rolls' -Method POST -Body $teste_arcana -Headers $headers
+```
+
+#### Histórico de Rolagens
+```bash
+# Ver rolagens de uma ficha específica
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/rolls/sheet/uuid-da-ficha' -Headers $headers
+
+# Ver todas as rolagens da mesa
+Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/rolls/table/uuid-da-mesa' -Headers $headers
+```
+
+### Estrutura de Dados
+
+#### PlayerSheet
+```json
+{
+  "id": "uuid-da-ficha",
+  "table_id": "uuid-da-mesa",
+  "template_id": 1,
+  "owner_id": 2,
+  "name": "Elara, a Élfica Arcana",
+  "data": {
+    "attributes": {
+      "strength": 12,
+      "dexterity": 16,
+      "constitution": 14,
+      "intelligence": 18,
+      "wisdom": 13,
+      "charisma": 15
+    },
+    "skills": {
+      "arcana": 8,
+      "investigation": 6,
+      "perception": 3
+    },
+    "combat": {
+      "armor_class": 15,
+      "hit_points": 32,
+      "speed": 30
+    }
+  },
+  "template": {
+    "id": 1,
+    "name": "Ficha D&D 5e"
+  },
+  "owner": {
+    "id": 2,
+    "email": "player@exemplo.com"
+  },
+  "created_at": "2025-07-11T15:00:00Z",
+  "updated_at": "2025-07-11T15:00:00Z"
+}
+```
+
+#### Roll Response
+```json
+{
+  "id": "uuid-da-rolagem",
+  "sheet_id": "uuid-da-ficha",
+  "expression": "1d20+8",
+  "field_name": "skills.arcana",
+  "result": 18,
+  "details": {
+    "dice": [10],
+    "modifier": 8,
+    "total": 18,
+    "critical": false,
+    "fumble": false,
+    "success": true
+  },
+  "roller": {
+    "id": 2,
+    "email": "player@exemplo.com"
+  },
+  "created_at": "2025-07-11T15:30:00Z"
+}
+```
+
+### Motor de Dados - Expressões Suportadas
+
+#### Expressões Básicas
+- `1d20` - Um dado de 20 faces
+- `2d6` - Dois dados de 6 faces
+- `3d8+5` - Três dados de 8 faces mais 5
+- `1d100-10` - Um dado de 100 faces menos 10
+
+#### Expressões com Campos
+- `skills.arcana` - Usa valor do campo skills.arcana da ficha
+- `attributes.strength` - Usa valor do atributo força
+- `combat.armor_class` - Usa valor da classe de armadura
+
+#### Recursos Avançados
+- **Critical/Fumble**: Detecta 20 natural (critical) e 1 natural (fumble)
+- **Validação**: Expressões malformadas retornam erro descritivo
+- **Limites**: Máximo 20 dados, máximo d1000, modificador ±999
+- **Segurança**: Geração criptograficamente segura de números
+
+### Validações e Autorização
+
+#### Permissões de Ficha
+- **Owner da Ficha**: Pode editar/deletar própria ficha
+- **Membros da Mesa**: Podem ver fichas da mesa, rolar dados
+- **Owner da Mesa**: Pode deletar qualquer ficha da mesa
+- **Outros**: Sem acesso (403 Forbidden)
+
+#### Validações de Dados
+- **Nome da Ficha**: 3-100 caracteres, obrigatório
+- **TableID**: UUID válido, mesa deve existir
+- **TemplateID**: Template deve existir no banco
+- **Data**: JSON válido, campos opcionais
+- **Expressão de Dados**: Sintaxe validada pelo motor
+
+#### Códigos de Erro
+- **400**: Dados inválidos, expressão malformada
+- **401**: Token JWT inválido ou ausente
+- **403**: Sem permissão para operação
+- **404**: Ficha, mesa ou template não encontrado
+- **500**: Erro interno do servidor
+
+### Arquivos Implementados
+
+#### Migrações
+- `migrations/20250711150000_create_player_sheets.sql`
+- `migrations/20250711160100_create_rolls.sql`
+
+#### Motor de Dados
+- `pkg/roll/engine.go` - Motor principal de rolagem
+- `pkg/roll/parser.go` - Parser de expressões regex
+- `pkg/roll/types.go` - Tipos e estruturas
+
+#### Modelos e Domínio
+- `internal/app/models/player_sheet.go` - Modelos completos
+- `internal/app/repositories/player_sheet.go` - Camada de dados
+- `internal/app/services/player_sheet.go` - Lógica de negócio
+
+#### API e Handlers
+- `internal/bff/player_sheet.go` - Handlers HTTP
+- `internal/bff/handler.go` - Integração de rotas
+
+#### Documentação
+- `docs/` - Swagger atualizado com endpoints PlayerSheet
+
+### Performance e Otimizações
+
+#### Consultas Otimizadas
+- **Índices**: Criados para table_id, owner_id, template_id
+- **JOINs Eficientes**: Busca relacionamentos em uma query
+- **Paginação**: Implementada para listas grandes
+- **Cache**: Prepared statements para queries frequentes
+
+#### Motor de Dados
+- **Regex Compilado**: Patterns compilados uma vez na inicialização
+- **Pool de Random**: Gerador único para toda aplicação
+- **Validação Rápida**: Checks básicos antes de parsing completo
+
+### Observações Importantes
+
+#### Padrão de Rotas
+- **Separação**: Fichas em `/sheets`, rolagens em `/rolls`
+- **Evita Conflitos**: Não sobrepõe com rotas de `/tables/:id`
+- **RESTful**: Seguindo convenções REST para recursos
+
+#### Flexibilidade de Dados
+- **JSON Livre**: Campo `data` aceita qualquer estrutura
+- **Validação Opcional**: Não força schema rígido
+- **Extensibilidade**: Fácil adicionar novos campos sem migração
+
+#### Segurança
+- **UUIDs**: Evita enumeration attacks em fichas
+- **Autorização Granular**: Validação em cada operação
+- **Sanitização**: Input validado antes de processamento
+
+### Próximos Passos
+- [ ] Implementar templates de rolagem personalizados
+- [ ] Adicionar macros de dados complexas
+- [ ] Implementar sistema de vantagem/desvantagem (D&D 5e)
+- [ ] Adicionar modificadores temporários nas fichas
+- [ ] Implementar iniciativa e ordem de turnos
+- [ ] Criar sistema de notas e anotações nas fichas
+````
